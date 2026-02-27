@@ -12,7 +12,6 @@ class Home extends BaseController {
 
         // keranjang & wishlist
         $keranjang = $isLogin ? $this->func->getKeranjang() : 0;
-        $wishlist  = $isLogin ? $this->func->getWishlistCount() : 0;
 
         $kategori = $this->func->getKategori();
 
@@ -45,7 +44,6 @@ class Home extends BaseController {
             'url' => site_url(),
             'isLogin'   => $isLogin,
             'keranjang' => $keranjang,
-            'wishlist'  => $wishlist,
             'kategori'  => $kategori,
             'promo'     => $promo,
             'jmlProdukPerKategori' => $data['jmlProdukPerKategori'] ?? [],
@@ -54,6 +52,95 @@ class Home extends BaseController {
         ];
 
         return view('client/home', $data);
+    }
+
+    public function signin($pwreset = 'none')
+    {
+
+        $session = session();
+        $db      = \Config\Database::connect();
+
+        $url = $session->get('url') ?? site_url();
+
+        $email = $this->request->getPost('email');
+        $passInput = $this->request->getPost('pass');
+
+        if ($email && $pwreset === "none") {
+
+            // query builder CI4
+            $builder = $db->table('user_data');
+            $builder->groupStart()
+                        ->where('username', $email)
+                        ->orWhere('no_hp', $email)
+                     ->groupEnd()
+                     ->limit(1);
+
+            $user = $builder->get()->getRow();
+
+            // ❌ user tidak ditemukan
+            if (!$user) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'token'   => csrf_hash()
+                ]);
+            }
+
+            // $pass  = service('func')->decode($user->password);
+            $pass  = $user->password;
+
+            // ✅ password cocok
+            if ($passInput == $pass) {
+
+                $session->set([
+                    'usrid' => $user->id,
+                ]);
+
+                return $this->response->setJSON([
+                    'success'  => true,
+                    'redirect' => $url,
+                    'token'    => csrf_hash()
+                ]);
+            }
+
+            // ❌ password salah
+            return $this->response->setJSON([
+                'success' => false,
+                'redirect'=> $url,
+                'msg'     => $email . " - " . $pass,
+                'token'   => csrf_hash()
+            ]);
+        }
+    
+
+        $set = $this->func->globalset('semua');
+        
+        $data = [
+            'set'         => $set,
+            'nama'        => $set->nama . ' – ' . $set->slogan,
+            'title'       => 'Masuk',
+            'google_url'  => '#',
+            'desc'      => 'Web toko furnitur ' . $set->nama,
+            'img' => base_url('cdn/assets/img/' . $set->favicon),
+            'url' => site_url(),
+        ];
+
+        return view('auth/signin', $data);
+    }
+
+    public function signup($pwreset = 'none')
+    {
+        $set = $this->func->globalset('semua');
+        $data = [
+            'set'         => $set,
+            'nama'        => $set->nama . ' – ' . $set->slogan,
+            'title'       => 'Masuk',
+            'google_url'  => '#',
+            'desc'      => 'Web toko furnitur ' . $set->nama,
+            'img' => base_url('cdn/assets/img/' . $set->favicon),
+            'url' => site_url(),
+        ];
+
+        return view('auth/signup', $data);
     }
 
 }

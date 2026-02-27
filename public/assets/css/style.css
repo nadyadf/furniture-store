@@ -1,3 +1,31 @@
+@font-face {
+    font-family: poppins-bold;
+    src: url('../webfonts/poppins/Poppins-Bold.ttf');
+}
+
+@font-face {
+    font-family: poppins;
+    src: url('../webfonts/poppins/Poppins-Regular.ttf');
+}
+
+:root{
+  --color-primary:#8b7355;
+  --color-primary-dark:#7B5A3C;
+  --color-primary-soft:#EADBC8;
+
+  --bg-main:#F6F4F1;
+  --bg-card:#FFFFFF;
+
+  --text-main:#2F2F2F;
+  --text-secondary:#555555;
+  --text-muted:#8A8A8A;
+
+  --border:#E5E2DD;
+
+  --danger:#C94F4F;
+  --success:#3A7D44;
+}
+
 .brand-name {
   font-family: 'Playfair Display', serif;
 }
@@ -22,6 +50,7 @@
 body {
     background: #f9f9f9;
     font-family: system-ui, -apple-system, sans-serif;
+    font-family: "poppins","Helvetica Neue",Helvetica,Arial,sans-serif;
     /* padding-bottom: 70px; */
 }
 
@@ -54,7 +83,7 @@ body {
   font-size: 68px;
   line-height: 0.9;
   font-weight: 500;
-  color: #8b7355;
+  color: var(--color-primary);
   margin-bottom: 30px;
   margin-right: 50cm;
 }
@@ -250,4 +279,53 @@ body {
 .badge-cart {
   font-size: 10px;
   padding: 3px 6px;
+}
+
+.section{
+    box-shadow: 0px 0px 8px #d0d1d4;
+    border-radius: 12px;
+    -webkit-border-radius: 12px;
+    -moz-border-radius: 12px;
+    background-color: #ffffff;
+}
+
+.font-bold{
+    font-family: poppins-bold;
+    color: var(--color-primary);
+}
+
+.line-text{
+    color: #b3b4b8;
+    border-top: 2px solid #d0d1d4;
+    position: relative;
+}
+.line-text .text{
+    position: absolute;
+    top: -12px;
+    text-align: center;
+    width: 100%;
+}
+.line-text span{
+    display: inline-block;
+    margin-left: auto;
+    padding: 0 12px;
+    background-color: #fff;
+}
+
+.logo {
+  width: 400px;
+}
+
+.btn-submit {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.btn-submit:hover {
+  background-color: var(--color-primary-dark);
+  color: white;
+}
+
+.nav-link.pesanan i {
+  color: var(--color-primary-soft);
 }

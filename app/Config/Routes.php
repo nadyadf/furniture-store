@@ -7,6 +7,10 @@ use CodeIgniter\Router\RouteCollection;
  */
 
 $routes->get('/', 'Home::index');
+$routes->get('signin', 'Home::signin');
+$routes->post('signin', 'Home::signin');
+$routes->get('signup', 'Home::signup');
+
 $routes->set404Override('Home::_404');
 
 $routes->get('kategori/(:segment)', 'Kategori::index/$1');

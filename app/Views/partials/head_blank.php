@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<title><?=$nama?></title>
+	<title><?=$title ? $set->nama." &#8211; ".$title : $nama?></title>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="shortcut icon" type="image/png" href="<?=base_url("cdn/assets/img/".$set->favicon)?>"/>
@@ -32,47 +32,7 @@
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
 	<link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-</head>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 
-	<!--===============================================================================================-->
-
-	
-
-  <body>
-    <?= $this->include('partials/head') ?>
-    <?= $this->renderSection('content') ?>
-		<?= $this->include('partials/foot') ?>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-
-  <script>
-    function offsetHero() {
-      const nav = document.getElementById('mainNavbar');
-      const hero = document.getElementById('promoCarousel');
-
-      if (nav && hero) {
-        hero.style.marginTop = nav.offsetHeight + 'px';
-      }
-    }
-
-    window.addEventListener('load', offsetHero);
-    window.addEventListener('resize', offsetHero);
-  </script>
-
-
-
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        new bootstrap.Carousel(document.querySelector('#promoCarousel'), {
-          interval: 7000,
-          wrap: true,     // ← looping terus
-          pause: false    // tidak berhenti saat hover
-        });
-      });
-    </script>
-
-  </body>
-
-  
- 
+  </head>

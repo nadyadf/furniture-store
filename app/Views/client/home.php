@@ -3,7 +3,7 @@
 
 <?= $this->section('content') ?>
   <!-- Slider -->	
-  <div id="promoCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="10000" data-bs-wrap="true">
+  <div id="promoCarousel" class="carousel slide" data-bs-ride="carousel">
     <div class="carousel-indicators">
     <?php $i = 0; foreach ($promo as $p): ?>
       <button 

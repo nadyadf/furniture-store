@@ -66,14 +66,11 @@ class GlobalData extends Model
     public function getKeranjang()
     {
         $db      = db_connect();
-        $builder = $db->table('transaksiproduk');
+        $builder = $db->table('transaksi_produk');
 
         if (session()->has('usrid')) {
             $builder->where('usrid', session('usrid'));
-        } elseif (session()->has('usrid_temp')) {
-            $builder->where('usrid_temp', session('usrid_temp'));
         } else {
-            // dummy biar tetap 0 (sama seperti CI3)
             $builder->where('usrid', 'xzact');
         }
 

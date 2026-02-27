@@ -28,13 +28,13 @@
 							</li>
 							<?php if(!$isLogin){ ?>
 							<li class="nav-item mx-2 d-flex align-items-center">
-								<a class="btn btn-outline-light btn-sm ms-2" href="<?=site_url("home/signin")?>">
+								<a class="btn btn-outline-light btn-sm ms-2" href="<?=site_url("signin")?>">
 									<i class="fas fa-sign-in-alt me-1"></i> Masuk / Daftar
 								</a>
 							</li>
 							<?php }else{ ?>
 							<li class="nav-item mx-2">
-								<a class="nav-link" href="<?=site_url('manage/pesanan')?>"><i class="fas fa-box text-primary"></i> Pesanan</a>
+								<a class="nav-link pesanan" href="<?=site_url('manage/pesanan')?>"><i class="fas fa-box"></i> Pesanan</a>
 							</li>
 							<?php } ?>
 						</ul>
