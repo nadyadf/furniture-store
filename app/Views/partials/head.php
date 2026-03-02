@@ -69,11 +69,11 @@
 										Akun Saya
 									</a>
 								</li>
-								<li><hr class="dropdown-divider"></li>
+								<li><hr class="dropdown-divider" style="border-color: rgba(255,255,255,0.3);"></li>
 								<li>
-									<a class="dropdown-item text-danger"  href="javascript:voi(0)" onclick="signoutNow()">
+									<button type="button" class="dropdown-item text-danger"  href="javascript:voi(0)" onclick="signoutNow()">
 										Log out
-									</a>
+									</button>
 								</li>
 							</ul>
 						</div>
