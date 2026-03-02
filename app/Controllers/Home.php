@@ -259,4 +259,10 @@ class Home extends BaseController {
         
     }
 
+    public function signout()
+    {
+        session()->destroy();
+        return redirect()->to('/signin');
+    }
+
 }

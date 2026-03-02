@@ -71,7 +71,7 @@
 								</li>
 								<li><hr class="dropdown-divider"></li>
 								<li>
-									<a class="dropdown-item text-danger" href="/logout">
+									<a class="dropdown-item text-danger"  href="javascript:voi(0)" onclick="signoutNow()">
 										Log out
 									</a>
 								</li>
@@ -83,5 +83,11 @@
 			</div>
 		</nav>
 	</header>
+	<form id="logoutForm"
+				action="<?= site_url('signout') ?>"
+				method="post"
+				class="d-none">
+		<?= csrf_field() ?>
+	</form>
 	<script src="https://kit.fontawesome.com/6d173f80fe.js" crossorigin="anonymous"></script>
 	

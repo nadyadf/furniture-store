@@ -9,9 +9,12 @@ use CodeIgniter\Router\RouteCollection;
 $routes->get('/', 'Home::index');
 $routes->get('signin', 'Home::signin');
 $routes->post('signin', 'Home::signin');
+
 $routes->get('signup', 'Home::signup');
 $routes->post('signup', 'Home::signup');
 $routes->post('signup/(:segment)', 'Home::signup/$1');
+
+$routes->post('signout', 'Home::signout');
 
 $routes->set404Override('Home::_404');
 
