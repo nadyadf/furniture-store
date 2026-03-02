@@ -3,9 +3,19 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use Config\Services;
+use Config\Database;
 
 class GlobalData extends Model
 {
+    protected $encryption;
+
+    public function __construct()
+    {
+         $this->encryption = Services::encrypter();
+         $this->db = Database::connect();
+    }
+
     public function demo()
     {
         return false;
@@ -106,11 +116,6 @@ class GlobalData extends Model
                 $this->db->table('user_data')
                         ->where('id', $session->get('usrid'))
                         ->update(['tgl' => date('Y-m-d H:i:s')]);
-
-                // sync level session
-                // if ($session->get('lvl') != $user->level) {
-                //     $session->set('lvl', $user->level);
-                // }
 
                 return $session->get('usrid');
             } else {
@@ -221,6 +226,16 @@ class GlobalData extends Model
             ->limit($limit)
             ->get()
             ->getResult();
+    }
+
+    public function encode($string)
+    {
+        return $this->encryption->encrypt($string);
+    }
+
+    public function decode($string)
+    {
+        return $this->encryption->decrypt($string);
     }
 
 }

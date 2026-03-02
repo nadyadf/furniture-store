@@ -86,10 +86,10 @@ class Home extends BaseController {
             }
 
             // $pass  = service('func')->decode($user->password);
-            $pass  = $user->password;
+        
 
             // ✅ password cocok
-            if ($passInput == $pass) {
+            if (password_verify($this->request->getPost('pass'), $user->password)) {
 
                 $session->set([
                     'usrid' => $user->id,
@@ -129,18 +129,134 @@ class Home extends BaseController {
 
     public function signup($pwreset = 'none')
     {
-        $set = $this->func->globalset('semua');
-        $data = [
-            'set'         => $set,
-            'nama'        => $set->nama . ' – ' . $set->slogan,
-            'title'       => 'Masuk',
-            'google_url'  => '#',
-            'desc'      => 'Web toko furnitur ' . $set->nama,
-            'img' => base_url('cdn/assets/img/' . $set->favicon),
-            'url' => site_url(),
-        ];
+        $db      = \Config\Database::connect();
+        $session = session();
+        $request = $this->request;
 
-        return view('auth/signup', $data);
+        /* ===============================
+        KIRIM ULANG VERIFIKASI
+        =================================*/
+        if ($request->getPost('id') && $pwreset == "kirimulang") {
+
+            $id = service('func')->decode($request->getPost('id'));
+
+            if (service('func')->verifEmail($id)) {
+                service('func')->verifWA($id);
+
+                return $this->response->setJSON([
+                    'success'=>true,
+                    'message'=>'',
+                    'token'=>csrf_hash()
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success'=>false,
+                'message'=>'alamat email sudah terdaftar',
+                'token'=>csrf_hash()
+            ]);
+        }
+
+        /* ===============================
+        CEK EMAIL AJAX
+        =================================*/
+        elseif ($request->getPost('email') && $pwreset == "cekemail") {
+
+            $builder = $db->table('user_data');
+            $user = $builder->groupStart()
+                            ->where('username',$request->getPost('email'))
+                            ->orWhere('no_hp',$request->getPost('email'))
+                            ->groupEnd()
+                            ->get()
+                            ->getRow();
+
+            return $this->response->setJSON([
+                'success'=> $user ? false : true,
+                'message'=> $user ? 'alamat email/no handphone sudah terdaftar' : '',
+                'token'=> csrf_hash()
+            ]);
+        } 
+
+        /* ===============================
+        PROSES DAFTAR
+        =================================*/
+        elseif ($request->getPost('email') && $pwreset == "none") {
+
+            $email = $request->getPost('email');
+
+            // ambil password asli dari form
+            $passwordHash = password_hash(
+                $request->getPost('pass'),
+                PASSWORD_DEFAULT
+            );
+
+            $usd = $db->table('user_data')
+                    ->where('username',$email)
+                    ->get()
+                    ->getRow();
+
+            if (!$usd) {
+
+                // $upline = $session->get('aff') ?? 0;
+
+                $db->table('user_data')->insert([
+                    'username' => $email,
+                    'nama'     => $request->getPost('nama'),
+                    'no_hp'     => $request->getPost('nohp'),
+                    'password' => $passwordHash
+                ]);
+
+                $usrid = $db->insertID();
+
+                $db->table('profil')->insert([
+                    'usrid'   => $usrid,
+                    'no_hp'    => $request->getPost('nohp'),
+                    'nama'    => $request->getPost('nama'),
+                    'foto'    => 'user.png'
+                ]);
+
+                // service('func')->verifEmail($usrid);
+                // service('func')->verifWA($usrid);
+
+                $result = view('client/selesai_daftar', [
+                    'email'=>$email,
+                    'nowa'=>$request->getPost('nohp')
+                ]);
+
+                return $this->response->setJSON([
+                    'success'=>true,
+                    'result'=>$result,
+                    'token'=>csrf_hash()
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success'=>false,
+                'result'=>'Email sudah terdaftar',
+                'token'=>csrf_hash()
+            ]);
+        }
+
+        /* ===============================
+        HALAMAN SIGNUP
+        =================================*/
+        else {
+
+            $set = $this->func->globalset('semua');
+            
+            $data = [
+                'set'         => $set,
+                'nama'        => $set->nama . ' – ' . $set->slogan,
+                'title'       => 'Masuk',
+                'desc'      => 'Web toko furnitur ' . $set->nama,
+                'img' => base_url('cdn/assets/img/' . $set->favicon),
+                'url' => site_url(),
+            ];
+
+            return view('auth/signup', $data);
+
+        }
+        
     }
 
 }

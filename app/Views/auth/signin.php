@@ -88,17 +88,6 @@
 
 					<?php } ?>
 
-					<div class="line-text pt-4 pb-2">
-						<div class="text"><span>metode lainnya</span></div>
-					</div>
-
-					<div class="text-center mb-4">
-						<a href="<?=$google_url?>" class="btn btn-default btn-lg">
-							<img src="<?=base_url("assets/img/google.png")?>" style="height:26px;" class="pe-3" />
-							<small><b>Login with Google</b></small>
-						</a>
-					</div>
-
 				</div>
 			</div>
 		</div>

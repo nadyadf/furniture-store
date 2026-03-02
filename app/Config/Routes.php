@@ -10,6 +10,8 @@ $routes->get('/', 'Home::index');
 $routes->get('signin', 'Home::signin');
 $routes->post('signin', 'Home::signin');
 $routes->get('signup', 'Home::signup');
+$routes->post('signup', 'Home::signup');
+$routes->post('signup/(:segment)', 'Home::signup/$1');
 
 $routes->set404Override('Home::_404');
 
