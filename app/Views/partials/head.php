@@ -13,7 +13,7 @@
 			
 
 					<!-- MENU -->
-					<div class="col-12 col-md-6 col-lg-5 mb-2 mb-lg-0 d-flex align-items-center justify-content-center justify-content-md-end justify-content-lg-start">
+					<div class="col-12 col-md-6 col-lg-4 mb-2 mb-lg-0 d-flex align-items-center justify-content-center justify-content-md-end justify-content-lg-start">
 						<ul class="navbar-nav flex-row">
 							<li class="nav-item mx-2">
 								<a class="nav-link" href="<?=site_url()?>">KATALOG</a>
@@ -41,7 +41,7 @@
 					</div>
 
 					<!-- SEARCH -->
-					<div class="col-12 col-md-12 col-lg-3 mb-2 mb-lg-0 d-flex align-items-center justify-content-md-start justify-content-center gap-3">
+					<div class="col-12 col-md-12 col-lg-4 mb-2 mb-lg-0 d-flex align-items-center justify-content-md-start justify-content-center gap-3 pe-0">
 						<form style="max-width:300px; width:100%;" action="<?=site_url("shop")?>">
 							<div class="input-group">
 								<input type="text" class="form-control rounded-start-pill" name="cari" placeholder="Cari Produk" />
@@ -51,9 +51,37 @@
 						<a href="#" class="text-white text-decoration-none d-inline-flex align-items-center">
               🛒<span class="fs-6"><?= $keranjang ?></span>
             </a>
+						<?php if($isLogin){?>
+						<div class="dropdown">
+							<button class="btn border-0 p-0"
+											style="padding-top:5px;"
+											type="button"
+											data-bs-toggle="dropdown"
+											aria-expanded="false"
+							>
+									<span style="font-size:26px; color:white;">
+										<i class="fa-solid fa-circle-user"></i>
+									</span>
+							</button>
+							<ul class="dropdown-menu dropdown-menu-end">
+								<li>
+									<a class="dropdown-item" href="/akun">
+										Akun Saya
+									</a>
+								</li>
+								<li><hr class="dropdown-divider"></li>
+								<li>
+									<a class="dropdown-item text-danger" href="/logout">
+										Log out
+									</a>
+								</li>
+							</ul>
+						</div>
+						<?php } ?>
 					</div>
 				</div>
 			</div>
 		</nav>
 	</header>
+	<script src="https://kit.fontawesome.com/6d173f80fe.js" crossorigin="anonymous"></script>
 	
