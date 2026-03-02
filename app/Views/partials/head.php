@@ -71,7 +71,7 @@
 								</li>
 								<li><hr class="dropdown-divider" style="border-color: rgba(255,255,255,0.3);"></li>
 								<li>
-									<button type="button" class="dropdown-item text-danger"  href="javascript:voi(0)" onclick="signoutNow()">
+									<button type="button" class="dropdown-item text-danger" onclick="signoutNow()">
 										Log out
 									</button>
 								</li>
