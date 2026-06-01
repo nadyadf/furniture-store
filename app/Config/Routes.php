@@ -22,3 +22,14 @@ $routes->get('kategori/(:segment)', 'Kategori::index/$1');
 $routes->get('produk/(:segment)', 'Produk::index/$1');
 $routes->get('page/(:segment)', 'Page::index/$1');
 $routes->get('blog/(:segment)', 'Blog::single/$1');
+
+$routes->get('katalog', 'Shop::index');
+$routes->get('katalog/(:segment)', 'Shop::index/$1');
+
+$routes->get('keranjang', 'Home::keranjang');
+
+$routes->get('home/formatc/(:segment)', 'Home::formatc/$1');
+
+$routes->post('assync/prosesbeli', 'Assync::prosesbeli');
+$routes->post('assync/updatekeranjang', 'Assync::updateKeranjang');
+$routes->post('assync/hapuskeranjang', 'Assync::hapusKeranjang');

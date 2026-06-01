@@ -40,6 +40,8 @@
 	
 
   <body>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
     <?= $this->include('partials/head') ?>
     <?= $this->renderSection('content') ?>
 		<?= $this->include('partials/foot') ?>
@@ -56,8 +58,19 @@
       }
     }
 
+    function offsetFirstSection() {
+      const nav = document.getElementById('mainNavbar');
+      const sec = document.querySelector('.first-section');
+
+      if (nav && sec) {
+        sec.style.marginTop = nav.offsetHeight + 'px';
+      }
+    }
+
     window.addEventListener('load', offsetHero);
     window.addEventListener('resize', offsetHero);
+    window.addEventListener('load', offsetFirstSection);
+    window.addEventListener('resize', offsetFirstSection);
   </script>
 
 
@@ -65,7 +78,7 @@
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         new bootstrap.Carousel(document.querySelector('#promoCarousel'), {
-          interval: 7000,
+          interval: 10000,
           wrap: true,     // ← looping terus
           pause: false    // tidak berhenti saat hover
         });

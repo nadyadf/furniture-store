@@ -55,6 +55,11 @@ body {
 }
 
 
+.container h2 {
+  color: var(--text-main);
+}
+
+
 .carousel.slide {
     background: white;
 }
@@ -328,4 +333,111 @@ body {
 
 .nav-link.pesanan i {
   color: var(--color-primary-soft);
+}
+
+.pagination{
+    text-align: center;
+    width: 100%;
+    justify-content: center;
+    margin-top: 24px;
+}
+.pagination .item{
+    box-shadow: 0px 0px 16px #d0d1d4;
+    padding: 6px 18px;
+    background-image: linear-gradient( 91.9deg,  rgb(0, 150, 163) 0%, rgb(25, 201, 218) 90% );
+    border-radius: .3rem;
+    -webkit-border-radius: .3rem;
+    -moz-border-radius: .3rem;
+    color: #fff;
+    font-family: poppins-medium;
+    margin: 0px 6px;
+}
+.pagination .item.active,
+.pagination .item:hover{
+    background-image: linear-gradient( 0deg,   rgb(0, 150, 163) 0%,   rgb(0, 150, 163) 100% );
+    text-decoration: none;
+}
+
+.cart-city {
+  background-color: var(--color-primary-soft);
+}
+
+.cart-city,
+.cart-item-wrapper {
+  box-shadow: rgb(208, 209, 212) 0px 0px 14px;
+  margin: 0;
+}
+
+.cart-item-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox {
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+}
+
+.cart-item-wrapper .img {
+  padding-top: 80%;
+  margin: auto;
+  width: 80%;
+  min-width: 80px;
+  min-height: 80px;
+  box-shadow: 0px 0px 14px #d0d1d4;
+  border-radius: 20px;
+  background-size: cover;
+  background-position: center center;
+}
+
+.btn-number-input {
+  background-color: var(--color-primary-dark);
+  box-shadow: rgb(190, 188, 188) 0px 0px 8px;
+}
+
+.btn-number-input:hover {
+  background-color: var(--color-primary-dark);
+  opacity: .8;
+}
+
+.text-variasi {
+  color: var(--color-primary);
+}
+
+.cart .centered {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn-back-to-shop {
+  background-color: var(--color-primary-soft);
+}
+
+
+.btn-back-to-shop:hover,
+.btn-back-to-shop:focus,
+.btn-back-to-shop:hover {
+  background-color: var(--color-primary) !important;
+  color: white !important;
+}
+
+.kategori-menu .dropdown-item:hover,
+.kategori-menu .dropdown-item.active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.btn-show-more{
+    display:inline-block;
+    padding:10px 20px;
+    background: #c89f7a;
+    color:#fff;
+    border-radius:8px;
+    text-decoration:none;
+}
+
+.btn-show-more:hover{
+    background: #b58963;
 }

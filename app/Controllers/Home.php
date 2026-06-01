@@ -11,7 +11,10 @@ class Home extends BaseController {
         $isLogin = $usrid > 0;
 
         // keranjang & wishlist
-        $keranjang = $isLogin ? $this->func->getKeranjang() : 0;
+        $session = session();
+        // dd(session()->get());
+
+        $keranjang = $this->func->getKeranjang();
 
         $kategori = $this->func->getKategori();
 
@@ -31,7 +34,6 @@ class Home extends BaseController {
 
         $produkUnggulan = $this->func->getProdukUnggulan();
         $produkTerbaru = $this->func->getProdukTerbaru();
-        // dd($produkTerbaru);
 
         // data ke view
         $data = [
@@ -85,11 +87,10 @@ class Home extends BaseController {
                 ]);
             }
 
-            // $pass  = service('func')->decode($user->password);
+            $pass  = $user->password;
         
-
             // ✅ password cocok
-            if (password_verify($this->request->getPost('pass'), $user->password)) {
+            if (password_verify($this->request->getPost('pass'), $pass)) {
 
                 $session->set([
                     'usrid' => $user->id,
@@ -263,6 +264,60 @@ class Home extends BaseController {
     {
         session()->destroy();
         return redirect()->to('/signin');
+    }
+
+    public function formatc($id)
+    {
+        $prod = $this->func->getProdukById($id,"semua");
+        $kategoriNama = $this->func->getKategori($prod->idcat, 'nama');
+
+        if(!$prod || $prod->id == 0){
+            return "Invalid Parameter: ID Produk";
+        }
+
+        $variasiData = $this->func->getProdukVariasi($prod->id);
+        $warna = $this->func->getWarnaVariasi($prod->id);
+
+        return view('client/formatc',[
+            'prod' => $prod,
+            'kategoriNama' => $kategoriNama,
+            'variasiData' => $variasiData,
+            'warna' => $warna
+        ]);
+    }
+
+    public function keranjang()
+    {
+        $session = session();
+
+        $kategori = $this->func->getKategori();
+        $keranjang =  $this->func->getKeranjang();
+        $set = $this->func->globalset('semua');
+        $usrid = $this->func->cekLogin();
+        $isLogin = $usrid > 0;
+
+        $dataKeranjang = $this->func->getKeranjangFull();
+
+        $tema = (isset($set->tema)) ? $set->tema: 0;
+
+        // $total = 0;
+        // foreach ($dataKeranjang as $k) {
+        //     $total += $k->harga * $k->jumlah;
+        // }
+
+        return view('client/keranjang', [
+            'set' => $set,
+            'desc'      => 'Web toko furnitur ' . $set->nama,
+            'img' => base_url('cdn/assets/img/' . $set->favicon),
+            'nama' => $set->nama . ' – ' . $set->slogan,
+            'tema' => $this->func->tema(),
+            'dataKeranjang' => $dataKeranjang,
+            'keranjang' => $keranjang,
+            // 'total' => $total,
+            'url' => site_url(),
+            'kategori' => $kategori,
+            'isLogin' => $isLogin,
+        ]);
     }
 
 }

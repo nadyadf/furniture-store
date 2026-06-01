@@ -105,7 +105,7 @@
               </div>
             </div>
             <h3><?= $pu->nama ?></h3>
-            <div class="add-to-cart-btn">TAMBAH KE KERANJANG</div>
+            <button class="add-to-cart-btn" onclick="addtocart(<?=$pu->id?>)">TAMBAH KE KERANJANG</button>
           </div>
         </div>
       <?php endforeach; ?>
@@ -144,14 +144,16 @@
               </div>
             </div>
             <h3><?= $pt->nama ?></h3>
-            <div class="add-to-cart-btn">TAMBAH KE KERANJANG</div>
+            <button class="add-to-cart-btn" onclick="addtocart(<?=$pt->id?>)">TAMBAH KE KERANJANG</button>
           </div>
         </div>
       <?php endforeach; ?>
 
       </div>
       <div class="show-more">
-        <button>Tampilkan Lebih Banyak</button>
+          <a href="<?= site_url('katalog') ?>" class="btn-show-more">
+              Tampilkan Lebih Banyak
+          </a>
       </div>
     </div>
   </section>

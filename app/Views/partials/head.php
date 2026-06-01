@@ -1,3 +1,11 @@
+<html>
+
+<head>
+	<style>
+		
+	</style>
+</head>
+
 <header>
 		<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" id="mainNavbar">
 			<div class="container-fluid">
@@ -16,7 +24,7 @@
 					<div class="col-12 col-md-6 col-lg-4 mb-2 mb-lg-0 d-flex align-items-center justify-content-center justify-content-md-end justify-content-lg-start">
 						<ul class="navbar-nav flex-row">
 							<li class="nav-item mx-2">
-								<a class="nav-link" href="<?=site_url()?>">KATALOG</a>
+								<a class="nav-link" href="<?=site_url("katalog")?>">KATALOG</a>
 							</li>
 							<li class="nav-item dropdown mx-2">
 								<a class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false"></i> KATEGORI</a>
@@ -42,14 +50,16 @@
 
 					<!-- SEARCH -->
 					<div class="col-12 col-md-12 col-lg-4 mb-2 mb-lg-0 d-flex align-items-center justify-content-md-start justify-content-center gap-3 pe-0">
-						<form style="max-width:300px; width:100%;" action="<?=site_url("shop")?>">
+						<form style="max-width:300px; width:100%;" action="<?= !empty($slug) 
+							? site_url('katalog/'.$slug) 
+							: site_url('katalog') ?>">
 							<div class="input-group">
-								<input type="text" class="form-control rounded-start-pill" name="cari" placeholder="Cari Produk" />
+								<input type="text" class="form-control rounded-start-pill" name="cari" placeholder="Cari Produk" value="<?= esc($cari ?? '') ?>" />
 								<button class="btn btn-light rounded-end-pill">🔍</button>
 							</div>
 						</form>
-						<a href="#" class="text-white text-decoration-none d-inline-flex align-items-center">
-              🛒<span class="fs-6"><?= $keranjang ?></span>
+						<a href="<?= site_url('keranjang') ?>" class="text-white text-decoration-none d-inline-flex align-items-center">
+              🛒<span class="fs-6 jmlkeranjang"><?= $keranjang ?></span>
             </a>
 						<?php if($isLogin){?>
 						<div class="dropdown">
@@ -90,4 +100,5 @@
 		<?= csrf_field() ?>
 	</form>
 	<script src="https://kit.fontawesome.com/6d173f80fe.js" crossorigin="anonymous"></script>
-	
+
+</html>
