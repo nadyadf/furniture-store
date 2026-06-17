@@ -36,13 +36,13 @@
                     <div class="col-md-2 col-4 pointer">
                         <div class="img"
                             style="<?= !empty($car->gambar) 
-                                ? "background-image:url('".base_url('cdn/uploads/'.$car->gambar[0]->nama)."')" 
+                                ? "background-image:url('".base_url('cdn/uploads/'.$car->gambar->nama)."')" 
                                 : '' ?>">
                         </div>
                     </div>
 
                     <div class="col-md-9 col-12 row mx-0">
-                        <div class="col-md-5 mb-2 d-flex flex-column justify-content-center cursor-pointer" onclick="window.location.href='<?= site_url('produk/'.$car->url); ?>'">
+                        <div class="col-md-5 mb-2 d-flex flex-column justify-content-center pointer" onclick="window.location.href='<?= site_url('produk/'.$car->url); ?>'">
                             <span class="fw-medium w-100">
                                 <?= esc($car->nama) ?>
                             </span>
@@ -52,6 +52,10 @@
                                     <span class='text-variasi w-100 small fw-bold'>
                                         ".$car->nama_warna."
                                     </span>";
+                                }
+
+                                if($car->keterangan != ""){
+                                    echo "<span class='text-warning w-100' style='font-size:80%;'><b>Note : </b> <i>".$car->keterangan."</i></span>";
                                 }
                             ?>
                         </div>

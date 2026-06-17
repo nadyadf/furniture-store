@@ -315,9 +315,9 @@ class GlobalData extends Model
         foreach ($result as $k) {
 
             $k->gambar = $this->db->table('upload')
-                ->where('idproduk', $k->idproduk)
+                ->where('id_produk_variasi', $k->variasi)
                 ->get()
-                ->getResult();
+                ->getRow();
         }
 
         return $result;
@@ -548,6 +548,13 @@ class GlobalData extends Model
                     ->get()
                     ->getResult();
 
+                $row->totalstok = $this->db->table('produk_variasi')
+                    ->selectSum('stok')
+                    ->where('idproduk', $id)
+                    ->get()
+                    ->getRow()
+                    ->stok ?? 0;
+
                 return $row;
             }
 
@@ -579,15 +586,16 @@ class GlobalData extends Model
     {
         return $this->db->table('produk_variasi pv')
             ->select('
+                pv.id,
                 pv.idwarna,
                 vw.nama as warna,
-                SUM(pv.stok) as stok,
-                MIN(pv.id) as id,
-                MIN(pv.harga) as harga
+                pv.stok,
+                pv.harga,
+                u.nama as gambar
             ')
-            ->join('variasi_warna vw','vw.id = pv.idwarna','left')
+            ->join('variasi_warna vw', 'vw.id = pv.idwarna', 'left')
+            ->join('upload u', 'u.id_produk_variasi = pv.id', 'left')
             ->where('pv.idproduk', $idproduk)
-            ->groupBy('pv.idwarna')
             ->get()
             ->getResult();
     }
@@ -656,6 +664,22 @@ class GlobalData extends Model
 
             return $row->$field ?? "";
         }
+    }
+
+    public function getFoto($id)
+    {
+        $server = base_url('cdn/uploads');
+
+        $builder = db_connect()->table('upload');
+        $builder->where('idproduk', $id);
+
+        $foto = $builder->limit(1)->get()->getRow();
+
+        if ($foto) {
+            return $server . '/' . $foto->nama;
+        }
+
+        return base_url('cdn/uploads/no-image.png');
     }
 }
 
