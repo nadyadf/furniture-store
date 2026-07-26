@@ -50,8 +50,8 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ./htdocs/
-          # Paksa upload ulang file yang hilang/berbeda
-          dangerous-clean-slate: false
+          # Memaksa pembuatan folder otomatis jika direktori belum ada di server
+          force-complete-file-list: true
           exclude: |
             **/.git*
             **/.git*/**
