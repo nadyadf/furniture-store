@@ -1,0 +1,5 @@
+.git
+.env
+vendor/
+writable/debugbar/
+writable/logs/
