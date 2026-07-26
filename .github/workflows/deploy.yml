@@ -20,9 +20,8 @@ jobs:
           coverage: none
 
       - name: Install Dependencies
-        run: composer install --no-dev --optimize-autoloader
+        run: composer install --no-dev
 
-      # Pembersihan service Google API agar ringan
       - name: Cleanup Unused Google Services
         run: |
           php -r '
