@@ -22,11 +22,11 @@ jobs:
       - name: Install Dependencies
         run: composer install --no-dev --optimize-autoloader
 
-      # Pembersihan khusus folder Google Services yang aman tanpa mengganggu file Composer lain
+      # Pembersihan service Google API agar tidak bengkak
       - name: Cleanup Unused Google Services
         run: |
           php -r '
-            $servicesDir = __DIR__ . "/vendor/google/apiclient-services/src";
+            $servicesDir = "vendor/google/apiclient-services/src";
             if (is_dir($servicesDir)) {
                 $keep = ["Drive.php", "Drive", "Oauth2.php", "Oauth2"];
                 $files = glob($servicesDir . "/*");
@@ -50,6 +50,8 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ./htdocs/
+          # Paksa upload ulang file yang hilang/berbeda
+          dangerous-clean-slate: false
           exclude: |
             **/.git*
             **/.git*/**
