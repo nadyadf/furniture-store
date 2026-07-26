@@ -55,7 +55,7 @@
       <?php foreach($produk as $p): ?>
 
       <div class="col-6 col-md-4 col-lg-3">
-        <div class="product-card h-100">
+        <div class="product-card h-100" onclick="window.location.href='<?php echo site_url('produk/'.$p->url); ?>'">
 
           <img src="<?= base_url('cdn/uploads/'.$p->gambar) ?>">
 
@@ -75,7 +75,7 @@
 
           <h3><?= esc($p->nama) ?></h3>
 
-          <button class="add-to-cart-btn" onclick="addtocart(<?=$p->id?>)">TAMBAH KE KERANJANG</button>
+          <button class="add-to-cart-btn" onclick="event.stopPropagation(); addtocart(<?=$p->id?>)">TAMBAH KE KERANJANG</button>
 
         </div>
       </div>

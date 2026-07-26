@@ -29,7 +29,39 @@ $routes->get('katalog/(:segment)', 'Shop::index/$1');
 $routes->get('keranjang', 'Home::keranjang');
 
 $routes->get('home/formatc/(:segment)', 'Home::formatc/$1');
+$routes->get('home/invoice', 'Home::invoice');
 
+$routes->get('assync/pesanan', 'Assync::pesanan');
+$routes->get('assync/lacakiriman', 'Assync::lacakiriman');
+$routes->get('assync/pesananterakhir', 'Assync::pesananterakhir');
+$routes->get('assync/loadalamat', 'Assync::loadalamat');
 $routes->post('assync/prosesbeli', 'Assync::prosesbeli');
 $routes->post('assync/updatekeranjang', 'Assync::updateKeranjang');
 $routes->post('assync/hapuskeranjang', 'Assync::hapusKeranjang');
+$routes->post('assync/getkab', 'Assync::getKab');
+$routes->post('assync/getkec', 'Assync::getKec');
+$routes->post('assync/updatepesanan', 'Assync::updatePesanan');
+$routes->post('assync/batalkanPesanan', 'Assync::batalkanPesanan');
+$routes->post('assync/tambahalamat', 'Assync::tambahalamat');
+$routes->post('assync/getAlamat', 'Assync::getAlamat');
+$routes->post('assync/hapusAlamat', 'Assync::hapusAlamat');
+$routes->post('assync/updateprofil', 'Assync::updateProfil');
+$routes->post('assync/updatepass', 'Assync::updatePass');
+
+$routes->get('checkout', 'Checkout::index');
+$routes->post('checkout', 'Checkout::index');
+$routes->get('checkout/alamat', 'Checkout::alamat');
+$routes->post('checkout/simpanalamat', 'Checkout::simpanAlamat');
+$routes->get('checkout/kurir', 'Checkout::kurir');
+$routes->post('checkout/simpankurir', 'Checkout::simpanKurir');
+$routes->get('checkout/bayar', 'Checkout::bayar');
+$routes->post('checkout/simpanbayar', 'Checkout::simpanBayar');
+
+
+$routes->get('akun', 'Manage::index');
+$routes->get('manage/pesanan', 'Manage::pesanan');
+$routes->get('manage/detailpesanan', 'Manage::detailpesanan');
+$routes->get('manage/cetakinvoice', 'Manage::cetakInvoice');
+$routes->get('manage/lacakpaket/(:segment)', 'Manage::lacakpaket/$1');
+$routes->post('manage/konfirmasi', 'Manage::konfirmasi');
+

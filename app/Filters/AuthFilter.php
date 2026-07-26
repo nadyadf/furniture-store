@@ -13,7 +13,7 @@ class AuthFilter implements FilterInterface
         $session = session();
 
         if (!$session->has('usrid')) {
-            return redirect()->to(site_url('home/signin'));
+            return redirect()->to(site_url('signin'));
         }
 
         $userModel = model('UserModel');
@@ -21,7 +21,7 @@ class AuthFilter implements FilterInterface
 
         if (!$user) {
             $session->destroy();
-            return redirect()->to(site_url('home/signin'));
+            return redirect()->to(site_url('signin'));
         }
 
         // update last login

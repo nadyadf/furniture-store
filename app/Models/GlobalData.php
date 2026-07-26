@@ -311,13 +311,32 @@ class GlobalData extends Model
 
         $result = $builder->get()->getResult();
 
-        // ambil gambar
-        foreach ($result as $k) {
+        $gambarCache = [];
+        $gudangCache = [];
 
-            $k->gambar = $this->db->table('upload')
-                ->where('id_produk_variasi', $k->variasi)
-                ->get()
-                ->getRow();
+        foreach ($result as $item) {
+
+            // Gambar
+            if (!isset($gambarCache[$item->variasi])) {
+                $gambarCache[$item->variasi] = $this->db
+                    ->table('upload')
+                    ->where('id_produk_variasi', $item->variasi)
+                    ->get()
+                    ->getRow();
+            }
+
+            $item->gambar = $gambarCache[$item->variasi];
+
+            // Gudang
+            $kota = $this->globalset("kota");
+            if (!isset($gudangCache[$item->gudang])) {
+                $gudangCache[$item->gudang] = $this->getGudang(
+                    $item->gudang,
+                    'idkab'
+                );
+            }
+
+            $item->gudang = $gudangCache[$item->gudang] ? $this->getKabupaten($gudangCache[$item->gudang]) : $this->getKabupaten($kota);
         }
 
         return $result;
@@ -354,7 +373,7 @@ class GlobalData extends Model
                 return $session->get('usrid');
             } else {
                 $session->destroy();
-                return redirect()->to('/home/signin')->send();
+                return redirect()->to('signin')->send();
                 exit;
             }
         } else {
@@ -384,6 +403,7 @@ class GlobalData extends Model
             p.nama,
             p.harga,
             p.harga_coret,
+            p.url,
             u.nama as nama_gambar,
             SUM(tp.jumlah) as total_terjual
         ')
@@ -447,6 +467,7 @@ class GlobalData extends Model
                 p.id,
                 p.nama,
                 p.harga,
+                p.url,
                 p.tgl_buat,
                 p.harga_coret,
                 (
@@ -680,6 +701,1761 @@ class GlobalData extends Model
         }
 
         return base_url('cdn/uploads/no-image.png');
+    }
+
+    public function getProdukTerkait($idProduk, $idKategori, $limit = 4)
+    {
+        return $this->db->table('produk p')
+            ->select('
+                p.*,
+                MIN(u.nama) as gambar
+            ')
+            ->join('upload u', 'u.idproduk = p.id', 'left')
+            ->where('p.idcat', $idKategori)
+            ->where('p.id !=', $idProduk)
+            ->groupBy('p.id')
+            ->orderBy('RAND()')
+            ->limit($limit)
+            ->get()
+            ->getResult();
+    }
+
+    public function getKecamatan($value, $field = 'semua', $column = 'id')
+    {
+        $row = $this->db->table('kec')
+            ->where($column, $value)
+            ->limit(1)
+            ->get()
+            ->getRow();
+
+        // Data ditemukan
+        if ($row) {
+
+            if ($field === 'semua') {
+                return $row;
+            }
+
+            return $row->{$field} ?? '';
+        }
+
+        // Data tidak ditemukan
+        if ($field === 'semua') {
+
+            $empty = new \stdClass();
+
+            $empty->id = 0;
+            $empty->rajaongkir = 0;
+            $empty->idkab = 0;
+            $empty->nama = 'city temp';
+
+            return $empty;
+        }
+
+        return '';
+    }
+    public function getAlamat()
+    {
+        $builder = $this->db->table('alamat a');
+
+        if (session()->has('usrid')) {
+            $builder->where('a.usrid', session('usrid'));
+        } else {
+            $builder->where('a.usrid_temp', session('usrid_temp'));
+        }
+
+        return $builder
+            ->select('
+                a.*,
+                kec.nama as kecamatan,
+                kab.nama as kabupaten
+            ')
+            ->join('kec', 'kec.id = a.idkec', 'left')
+            ->join('kab', 'kab.id = kec.idkab', 'left')
+            ->orderBy('a.status', 'DESC')
+            ->get()
+            ->getResult();
+    }
+
+    public function getProvinsi(
+        $value = null,
+        string $field = 'id'
+    )
+    {
+        $builder = $this->db->table('prov');
+
+        if ($value !== null) {
+            return $builder
+                ->where($field, $value)
+                ->get()
+                ->getRow();
+        }
+
+        return $builder
+            ->orderBy('nama', 'ASC')
+            ->get()
+            ->getResult();
+    }
+
+    public function getKabupaten(
+        $value = null,
+        string $field = 'id'
+    )
+    {
+        $builder = $this->db->table('kab');
+
+        if ($value !== null) {
+            return $builder
+                ->where($field, $value)
+                ->get()
+                ->getRow();
+        }
+
+        return $builder
+            ->orderBy('nama', 'ASC')
+            ->get()
+            ->getResult();
+    }
+
+    public function getAllProvinsi()
+    {
+        return $this->db
+            ->table('prov')
+            ->orderBy('nama', 'ASC')
+            ->get()
+            ->getResult();
+    }
+
+    public function getTransaksiProduk($value, $column = "id", $selectField = "semua")
+    {
+        $db      = db_connect();
+
+        $builder = $db->table('transaksi_produk');
+        $builder->where($column, $value);
+        $builder->limit(1);
+
+        $query = $builder->get();
+        $row   = $query->getFirstRow();
+
+        // === Jika ingin ambil semua data ===
+        if ($selectField === "semua") {
+
+            if ($row) {
+                return $row;
+            }
+
+            // fallback jika data tidak ditemukan
+            $fields = $db->getFieldData('transaksi_produk');
+
+            $emptyObject = new \stdClass();
+            foreach ($fields as $field) {
+                $fieldName = $field->name;
+                $emptyObject->$fieldName = $this->kosongan($field->type);
+            }
+
+            return $emptyObject;
+        }
+
+        // === Jika hanya ambil 1 field tertentu ===
+        if ($row) {
+            return $row->$selectField ?? "";
+        }
+
+        return "";
+    }
+
+    public function getTransaksiProdukByIdTransaksi($value): array
+    {
+        return $this->db->table('transaksi_produk')
+            ->where('idtransaksi', $value)
+            ->get()
+            ->getResult();
+    }
+
+    public function processCheckout(array $idProduk): array
+    {
+        $produkValid = [];
+        $berat = 0;
+        $total = 0;
+        $gudang = null;
+
+        foreach ($idProduk as $id) {
+
+            $transaksi = $this->getTransaksiProduk($id);
+
+            if (!$transaksi || $transaksi->idtransaksi != 0) {
+                continue;
+            }
+
+            $produk = $this->getProdukById($transaksi->idproduk);
+
+            if (!$produk || $produk->id <= 0) {
+                continue;
+            }
+
+            if ($gudang === null) {
+                $gudang = $produk->gudang;
+            }
+
+            if ($gudang != $produk->gudang) {
+                continue;
+            }
+
+            $produkValid[] = $id;
+
+            $berat += $produk->berat * $transaksi->jumlah;
+            $total += $transaksi->harga * $transaksi->jumlah;
+        }
+
+        if (empty($produkValid)) {
+            return [
+                'success' => false,
+                'message' => 'Produk tidak valid'
+            ];
+        }
+
+        $prebayarId = $this->createPrePayment($produkValid, $gudang, $berat, $total);
+
+        return [
+            'success' => true,
+            'data' => [
+                'prebayarId' => $prebayarId,
+                'berat' => $berat,
+                'total' => $total
+            ]
+        ];
+    }
+
+    private function createPrePayment(array $produk, int $gudang, float $berat, float $total)
+    {
+        $session = session();
+        $tipeco = $session->has('usrid') ? 0 : 1;
+
+        // close old prepayment
+        if ($session->has('prebayar')) {
+            $builder = $this->db->table('pembayaran_pre');
+
+            $builder->where('tipe_co', $tipeco)
+                ->where('status', 0);
+
+            if ($tipeco == 0) {
+                $builder->where('usrid', $session->get('usrid'));
+            } else {
+                $builder->where('usrid_temp', $session->get('usrid_temp'));
+            }
+
+            $builder->update(['status' => 2]);
+
+            $session->remove('prebayar');
+        }
+
+        $set = $this->globalset('semua');
+
+        $dari = $gudang == 0
+            ? $set->kecamatan
+            : $this->getGudang($gudang, 'idkec');
+
+        $data = [
+            'tipe_co' => $tipeco,
+            'tgl' => date('Y-m-d H:i:s'),
+            'dari' => $dari,
+            'gudang' => $gudang,
+            'total' => $total,
+            'berat' => $berat,
+            'produk' => implode('|', $produk)
+        ];
+
+        if ($tipeco == 0) {
+            $data['usrid'] = $session->get('usrid');
+        } else {
+            $data['usrid_temp'] = $session->get('usrid_temp');
+        }
+
+        $this->db->table('pembayaran_pre')->insert($data);
+
+        $id = $this->db->insertID();
+
+        $session->set('prebayar', $id);
+
+        return $id;
+    }
+
+    public function getGudang(
+        $value,
+        string $field = 'semua',
+        string $key = 'id'
+    )
+    {
+        $builder = $this->db->table('gudang'); 
+        $result = $builder 
+            ->where($key, $value) 
+            ->get() 
+            ->getRow(); // Ambil seluruh data 
+        
+        if ($field === 'semua') { 
+            if ($result) { return $result; } 
+            $emptyObject = new \stdClass(); 
+            foreach ($this->db->getFieldData('gudang') as $column) { 
+                $emptyObject->{$column->name} = $this->kosongan($column->type); 
+            }
+            return $emptyObject; 
+        } // Ambil field tertentu 
+        
+        return $result->{$field} ?? null;
+    }
+
+    public function getUser($userId, $field = 'semua', $searchBy = 'id')
+    {
+        $user = $this->db->table('user_data')
+            ->where($searchBy, $userId)
+            ->get(1)
+            ->getRow();
+
+        // Mengembalikan satu field saja
+        if ($field !== 'semua') {
+            return $user->{$field} ?? '';
+        }
+
+        // Mengembalikan seluruh data user
+        if ($user) {
+            return $user;
+        }
+
+        // Jika user tidak ditemukan, buat object kosong sesuai struktur tabel
+        $emptyUser = new \stdClass();
+
+        foreach ($this->db->getFieldData('user_data') as $column) {
+            $emptyUser->{$column->name} = null;
+        }
+
+        return $emptyUser;
+    }
+
+    public function getUserTemp(
+        $value,
+        string $searchField = 'id'
+    )
+    {
+        return $this->db
+            ->table('user_temp')
+            ->where($searchField, $value)
+            ->get()
+            ->getRow();
+    }
+
+    public function updateUserTemp(
+        int $id,
+        array $data
+    ): bool
+    {
+        return $this->db
+            ->table('user_temp')
+            ->where('id', $id)
+            ->update($data);
+    }
+
+    public function addNewAddress(
+        bool $tipeCheckout,
+        array $dataAlamat
+    )
+    {
+        // Validasi kode pos
+        $destinationId = $this->validateKel(
+            $dataAlamat['idkec'],
+            $dataAlamat['kodepos']
+        );
+
+        if ($destinationId === null) {
+            return false;
+        }
+
+        $session = session();
+
+        $alamatBuilder = $this->db->table('alamat');
+
+        if ($tipeCheckout == 0) {
+            $alamatBuilder->where('usrid', $session->get('usrid'));
+        } else {
+            $alamatBuilder->where('usrid_temp', $session->get('usrid_temp'));
+        }
+
+        $dataAlamat['status'] = $alamatBuilder->countAllResults() > 0 ? 0 : 1;
+
+        if ($tipeCheckout == 0) {
+            $dataAlamat['usrid'] = $session->get('usrid');
+        } else {
+            $dataAlamat['usrid_temp'] = $session->get('usrid_temp');
+        }
+
+        $this->db->table('alamat')->insert($dataAlamat);
+
+        return $this->db->insertID();
+    }
+
+    public function getAlamatById(int $id): ?object
+    {
+        $session = session();
+
+        $builder = $this->db->table('alamat a')
+            ->select("
+                a.*,
+                kec.nama AS nama_kecamatan,
+                CONCAT(kab.tipe, ' ', kab.nama) AS nama_kabupaten
+            ")
+            ->join('kec', 'kec.id = a.idkec')
+            ->join('kab', 'kab.id = kec.idkab');
+
+        if ($session->has('usrid')) {
+            $builder->where('a.usrid', $session->get('usrid'));
+        } else {
+            $builder->where('a.usrid_temp', $session->get('usrid_temp'));
+        }
+
+        return $builder
+            ->where('a.id', $id)
+            ->get()
+            ->getRow();
+    }
+
+    public function getPembayaranPre($nilai, $kolom, $kolomPencarian = 'id')
+    {
+        $query = $this->db
+            ->table('pembayaran_pre')
+            ->where($kolomPencarian, $nilai)
+            ->get(1);
+
+        if ($kolom === 'semua') {
+
+            $data = $query->getRow();
+
+            if ($data) {
+                return $data;
+            }
+
+            $fields = $this->db->getFieldData('pembayaran_pre');
+
+            $dataKosong = new \stdClass();
+
+            foreach ($fields as $field) {
+                $namaField = $field->name;
+                $dataKosong->$namaField = $this->kosongan($field->type);
+            }
+
+            return $dataKosong;
+        }
+
+        $data = $query->getRow();
+
+        return $data ? $data->$kolom : '';
+    }
+
+    public function getKurirByIds(array $idKurir)
+    {
+        if (empty($idKurir)) {
+            return [];
+        }
+
+        return $this->db
+            ->table('kurir')
+            ->whereIn('id', $idKurir)
+            ->orderBy('id', 'ASC')
+            ->get()
+            ->getResult();
+    }
+
+    public function updatePreBayar(int $idPreBayar, array $data): bool
+    {
+        return $this->db
+            ->table('pembayaran_pre')
+            ->where('id', $idPreBayar)
+            ->update($data);
+    }
+
+    public function getKurir($id, $field = 'semua', $column = 'id')
+    {
+        $row = $this->db
+            ->table('kurir')
+            ->where($column, $id)
+            ->get()
+            ->getRow();
+
+        if ($field === 'semua') {
+            return $row;
+        }
+
+        return $row ? ($row->$field ?? null) : null;
+    }
+
+    public function getPaket($id, $field = 'semua', $column = 'id')
+    {
+        $row = $this->db
+            ->table('paket')
+            ->where($column, $id)
+            ->get()
+            ->getRow();
+
+        if ($field === 'semua') {
+            return $row;
+        }
+
+        return $row ? ($row->$field ?? null) : null;
+    }
+
+    public function getPaketByIdKurir(int $idKurir): array
+    {
+        return $this->db->table('paket')
+            ->select('id, idkurir, rajaongkir, nama')
+            ->where('idkurir', $idKurir)
+            ->orderBy('rajaongkir', 'ASC')
+            ->get()
+            ->getResult();
+    }
+
+    public function hitungBeratOngkir(int $beratGram, string $kurir): int
+    {
+        if ($beratGram <= 0) {
+            return 1;
+        }
+
+        $toleransi = match (strtolower($kurir)) {
+            'jne'  => 300,
+            'pos'  => 200,
+            'tiki' => 299,
+            default => 0,
+        };
+
+        if ($beratGram <= (1000 + $toleransi)) {
+            return 1;
+        }
+
+        return (int) ceil(($beratGram - $toleransi) / 1000);
+    }
+    public function getKurirCustom(int $kurirId, int $paketId)
+    {
+        return $this->db
+            ->table('kurir_custom')
+            ->where('kurir', $kurirId)
+            ->where('paket', $paketId)
+            ->get()
+            ->getResult();
+    }
+
+    public function getKel(int $placeId, string $placeType): ?string
+    {
+        // Ambil data gudang/alamat berdasarkan ID
+        $place = $this->db
+            ->table($placeType)
+            ->where('id', $placeId)
+            ->get()
+            ->getRow();
+
+        if (!$place) {
+            log_message('error', "getKel: Tidak ditemukan data {$placeType} dengan id = {$placeId}");
+            return null;
+        }
+
+        $idKec  = $place->idkec;
+        $zipCode = trim($place->kodepos);
+
+        // Ambil data kecamatan
+        $kec = $this->db
+            ->table('kec')
+            ->where('id', $idKec)
+            ->get()
+            ->getRow();
+
+        if (!$kec) {
+            log_message('error', "getKel: Tidak ditemukan kecamatan dengan id = {$idKec}");
+            return null;
+        }
+
+        $kecName = $kec->nama;
+
+        // Cari di database lokal
+        $kel = $this->db
+            ->table('kel')
+            ->where('idkec', $idKec)
+            ->where('kodepos', $zipCode)
+            ->get()
+            ->getRow();
+
+        if ($kel) {
+            return $kel->rajaongkir;
+        }
+
+        // Request ke RajaOngkir
+        $curl = curl_init();
+
+        curl_setopt_array($curl, [
+            CURLOPT_URL            => 'https://rajaongkir.komerce.id/api/v1/destination/domestic-destination?search=' . urlencode($kecName),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING       => '',
+            CURLOPT_MAXREDIRS      => 10,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST  => 'GET',
+            CURLOPT_HTTPHEADER     => [
+                'key: ' . $this->globalset('rajaongkir')
+            ],
+        ]);
+
+        $response = curl_exec($curl);
+        $error = curl_error($curl);
+
+        curl_close($curl);
+
+        if ($error) {
+            log_message('error', "getKel: CURL error - {$error}");
+            return null;
+        }
+
+        $responseData = json_decode($response, true);
+
+        if (!isset($responseData['data']) || empty($responseData['data'])) {
+            log_message('error', "getKel: Tidak ada data API untuk '{$kecName}'");
+            return null;
+        }
+
+        // Filter berdasarkan kodepos
+        $filtered = array_values(
+            array_filter(
+                $responseData['data'],
+                static fn($item) => ($item['zip_code'] ?? '') == $zipCode
+            )
+        );
+
+        if (empty($filtered)) {
+            log_message('error', "getKel: Tidak ada data API yang cocok dengan kodepos {$zipCode}");
+            return null;
+        }
+
+        $destinationId = $filtered[0]['id'];
+        $subdistrict   = ucwords(strtolower($filtered[0]['subdistrict_name']));
+
+        // Cek apakah sudah ada
+        $exists = $this->db
+            ->table('kel')
+            ->where('nama', $subdistrict)
+            ->where('kodepos', $zipCode)
+            ->countAllResults();
+
+        if ($exists === 0) {
+            $this->db
+                ->table('kel')
+                ->insert([
+                    'idkec'      => $idKec,
+                    'nama'       => $subdistrict,
+                    'kodepos'    => $zipCode,
+                    'rajaongkir' => $destinationId,
+                ]);
+        }
+
+        return $destinationId;
+    }
+
+    public function validateKel(int $idKec, string $kodePos): ?string
+    {
+        // Normalisasi kode pos
+        $kodePos = trim($kodePos);
+
+        // Ambil data kecamatan
+        $kec = $this->db
+            ->table('kec')
+            ->where('id', $idKec)
+            ->get()
+            ->getRow();
+
+        $kecName = $kec->nama;
+
+        // 1. Cek database lokal
+        $kel = $this->db
+            ->table('kel')
+            ->where('idkec', $idKec)
+            ->where('kodepos', $kodePos)
+            ->get()
+            ->getRow();
+
+        if ($kel) {
+            return $kel->rajaongkir;
+        }
+
+        // 2. Cek ke API RajaOngkir
+        $curl = curl_init();
+
+        curl_setopt_array($curl, [
+            CURLOPT_URL => 'https://rajaongkir.komerce.id/api/v1/destination/domestic-destination?search=' . urlencode($kodePos),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => [
+                'key: ' . $this->globalset('rajaongkir')
+            ],
+        ]);
+
+        $response = curl_exec($curl);
+        $error = curl_error($curl);
+
+        curl_close($curl);
+
+        if ($error) {
+            log_message('error', "validateKel: CURL Error - {$error}");
+            return null;
+        }
+
+        $responseData = json_decode($response, true);
+
+        if (empty($responseData['data'])) {
+            log_message('error', "validateKel: Kode pos {$kodePos} tidak ditemukan.");
+            return null;
+        }
+        
+
+        $filtered = array_values(array_filter(
+            $responseData['data'],
+            static function ($item) use ($kecName) {
+                return strcasecmp(
+                    trim($item['district_name'] ?? ''),
+                    trim($kecName)
+                ) === 0;
+            }
+        ));
+
+        if (empty($filtered)) {
+            log_message('error', "validateKel: Kode pos {$kodePos} tidak termasuk kecamatan {$kecName}");
+            return null;
+        }
+
+        $item = $filtered[0];
+
+        // Simpan ke database jika belum ada
+        $subdistrict = ucwords(strtolower($item['subdistrict_name']));
+
+        $existing = $this->db
+            ->table('kel')
+            ->where('idkec', $idKec)
+            ->where('nama', $subdistrict)
+            ->get()
+            ->getRow();
+
+        if ($existing) {
+            $this->db
+                ->table('kel')
+                ->where('id', $existing->id)
+                ->update([
+                    'kodepos'    => $kodePos,
+                    'rajaongkir' => $item['id'],
+                ]);
+        } else {
+            $this->db
+                ->table('kel')
+                ->insert([
+                    'idkec'      => $idKec,
+                    'nama'       => $subdistrict,
+                    'kodepos'    => $kodePos,
+                    'rajaongkir' => $item['id'],
+                ]);
+        }
+
+        return $item['id'];
+    }
+
+    public function getHistoryOngkir(
+        int $dari,
+        int $tujuan,
+        string $kurir,
+        ?string $service = null
+    ): array {
+        $builder = $this->db
+            ->table('histori_ongkir')
+            ->where('dari', $dari)
+            ->where('tujuan', $tujuan)
+            ->where('kurir', strtolower($kurir));
+
+        if ($service !== null) {
+            $builder->where('serviceid', $service);
+        }
+
+        return $builder
+            ->orderBy('id', 'DESC')
+            ->get()
+            ->getResult();
+    }
+
+    public function cekOngkir($dari,$berat,$tujuan,$kurirId,$serviceId, $alamatId, $gudangId){
+			
+        $kurir = $this->getKurir($kurirId,"semua");
+        $service = $this->getPaket($serviceId,"semua");
+        $beratkg = $this->hitungBeratOngkir($berat, $kurir->rajaongkir);
+        
+        // CUSTOM KURIR
+        if ($kurir->jenis == 2) {
+            $idKabTujuan = $this->getKecamatan($tujuan,"idkab");
+            // $berat = $this->hitungBeratOngkir($berat);
+            $kurirCustom = $this->getKurirCustom($kurir->id, $service->id);
+
+            if (!empty($kurirCustom)) {
+                $hasils = array();
+                foreach($kurirCustom as $kc){
+                    $biaya = ($kc->jenis == 1) ? $kc->harga : $kc->harga * $beratkg;
+                    $hasils[$kc->idkab] = array( // hasils, s = sementara
+                        "success"	=> true,
+                        "dari"		=> $dari,
+                        "tujuan"	=> $tujuan,
+                        "kurir"		=> $kurir->nama, // jne, jnt, dsb
+                        "service"	=> $service->nama, // REG, CTC, dsb
+                        "kuririd"	=> $kurir->id,
+                        "serviceid"	=> $service->id,
+                        "cod"		=> $service->cod, // boolean
+                        "etd"		=> $kc->estimasi, // estimasi hari
+                        "harga"		=> $biaya,
+                        "update"	=> date("Y-m-d H:i:s"),
+                        "hargaperkg"=> $kc->harga,
+                        "token"		=> csrf_hash()
+                    );
+                }
+
+                if (isset($hasils[$idKabTujuan])) {
+                    $hasil = $hasils[$idKabTujuan];
+                } else { // Tidak ada kurir custom yg cocok dengan id kab tujuan
+                    $hasil = array(
+                        "success"	=> false,
+                        "dari"		=> $dari,
+                        "tujuan"	=> $tujuan,
+                        "kurir"		=> $kurir->nama,
+                        "service"	=> $service->nama,
+                        "kuririd"	=> $kurir->id,
+                        "serviceid"	=> $service->id,
+                        "cod"		=> $service->cod,
+                        "etd"		=> 1,
+                        "harga"		=> 0,
+                        "update"	=> date("Y-m-d H:i:s"),
+                        "hargaperkg"=> 0,
+                        "keterangan"=> "ongkir tidak ditemukan",
+                        "token"		=> csrf_hash()
+                    );
+                }
+            } else { // Tidak ada kurir custom yg sesuai dengan kurir dan service yg diminta
+                $hasil = array(
+                    "success"	=> false,
+                    "dari"		=> $dari,
+                    "tujuan"	=> $tujuan,
+                    "kurir"		=> $kurir->nama,
+                    "service"	=> $service->nama,
+                    "kuririd"	=> $kurir->id,
+                    "serviceid"	=> $service->id,
+                    "cod"		=> $service->cod,
+                    "etd"		=> 1,
+                    "harga"		=> 0,
+                    "update"	=> date("Y-m-d H:i:s"),
+                    "hargaperkg"=> 0,
+                    "keterangan"=> "ongkir tidak ditemukan",
+                    "token"		=> csrf_hash()
+                );
+            }
+        } else { // Inisialisasi variable untuk kurir Jenis 1 
+            // $kuririd = $kurir->id;
+            $kurir = $kurir->rajaongkir;
+            // $serviceid = $service->id;
+            $serviceCod = $service->cod; 
+            $service = $service->rajaongkir; // cod, OKE, REG, dll
+        }
+        
+
+        if (isset($hasil)) {
+            return $hasil; // jika kurir custom, return langsung hasilnya
+        } else { // Untuk yg bukan Kurir Custom
+
+            // Dapatkan subdistrict id dari rajaongkir
+            $dari = $this->getKel($gudangId, "gudang"); // id kelurahan asal pada db rajaongkir
+            $datakec = $this->getKecamatan($tujuan,"semua"); // data kecamatan tujuan
+            $tujuan = $this->getKel($alamatId, "alamat"); // id kelurahan tujuan pada db rajaongkir
+
+            if ($datakec->idkab == $dari AND $kurir == "jne") { // kemungkinan code ini tidak tereksekusi karena $dari adalah id kelurahan pada rajaongkir bukan id kabupaten pada db lokal
+                if($_GET["service"] == "REG"){ $service = "CTC"; }
+                elseif($_GET["service"] == "YES"){ $service = "CTCYES"; }
+            }
+
+            $historyOngkir = $this->getHistoryOngkir($dari, $tujuan, $kurir);
+            if (!empty($historyOngkir)) {
+                foreach($historyOngkir as $ho) {
+                    if (strcasecmp($service,$ho->service) == 0) {  // histori ongkir yg serupa tersedia
+                        if ($ho->harga <= 0) { // jika harga 0, maka request ke rajaongkir
+                            return $this->reqOngkir($dari, $beratkg, $tujuan, $kurir, $service, $kurirId, $serviceId);
+                            exit;
+                        }
+                        
+                        $harga = $ho->harga * $beratkg;
+                        $etd = $ho->etd != "" OR $ho->etd != "-" ? $ho->etd : "0";
+                        $array = array(
+                            "success"	=> true,
+                            "dari"		=> $ho->dari,
+                            "tujuan"	=> $ho->tujuan,
+                            "kurir"		=> $ho->kurir,
+                            "service"	=> $ho->service,
+                            "kuririd"	=> $kurirId,
+                            "serviceid"	=> $serviceId,
+                            "cod"		=> $serviceCod,
+                            "etd"		=> $etd,
+                            "harga"		=> $harga,
+                            "update"	=> $ho->update
+                        );
+                        return $array;
+                    }
+                }
+             } else { // Jika tidak ada history ongkir yg serupa, request ke raja ongkir
+                return $this->reqOngkir($dari, $berat, $tujuan, $kurir, $service, $kurirId, $serviceId);
+            }
+        }
+	}
+
+    private function reqOngkir($dari, $berat, $tujuan, $kurir, $services, $kuririd, $serviceid){
+		$usrid = session('usrid') ?? 0;
+		//$kur = $this->getKurir($kuririd,"semua");
+		$ser = $this->getPaket($serviceid,"semua");
+
+
+		$curl = curl_init();
+		curl_setopt_array($curl, array(
+			CURLOPT_URL => "https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost",
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_ENCODING => "",
+			CURLOPT_MAXREDIRS => 10,
+			CURLOPT_TIMEOUT => 30,
+			CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+			CURLOPT_CUSTOMREQUEST => "POST",
+			CURLOPT_POSTFIELDS => http_build_query([
+					"origin" => $dari,
+					"destination" => $tujuan,
+					"weight" => $berat,
+					"courier" => $kurir
+			]),
+			// "origin=".$dari."&originType=city&destination=".$tujuan."&destinationType=subdistrict&weight=".$berat."&courier=".$kurir,
+			CURLOPT_HTTPHEADER => array(
+			"accept: application/json",
+			"content-type: application/x-www-form-urlencoded",
+			"Key: ".$this->globalset("rajaongkir")
+			),
+		));
+
+		$response = curl_exec($curl);
+		// echo "<pre>";
+        //         print_r($response);
+		// 						echo "</pre>";
+		$err = curl_error($curl);
+
+		curl_close($curl);
+
+		if ($err) {
+			return "cURL Error #:" . $err;
+		} else {
+			$arr = json_decode($response);
+			//print_r($response);
+			//exit;
+			//print_r($arr->rajaongkir->results[0]->costs[0]->cost[0]->value);
+			$hasil = array("success"=>false,"response"=>"daerah tidak terjangkau!","harga"=>0);
+
+			if (isset($arr->meta->code) AND $arr->meta->code == "200") {
+				$hasil = array("success"=>false,"response"=>"daerah tidak terjangkau!","message"=>"service code tidak ada data","harga"=>0,"kurir"=>$kurir,"paket"=>$services,"origin"=>$dari);
+                $beratkg = $this->hitungBeratOngkir($berat, $kurir);
+
+				for($i=0; $i<count($arr->data); $i++){
+
+					$harga = $arr->data[$i]->cost / $beratkg;
+					$service = $arr->data[$i]->service;
+					$etd = $arr->data[$i]->etd;
+					$etd = $etd != "" ? $etd : "0";
+					$array = array(
+						"dari"		=> $dari,
+						"tujuan"	=> $tujuan,
+						"kurir"		=> $kurir,
+						"service"	=> $service,
+						"kuririd"	=> $kuririd,
+						"serviceid"	=> $serviceid,
+						"cod"		=> $ser->cod,
+						"harga"		=> $harga,
+						"etd"		=> $etd,
+						"update"	=> date("Y-m-d H:i:s"),
+						"usrid"		=> $usrid
+					);
+
+                    //simpan setiap response dengan berbagai service yg tersedia
+                    $this->saveHistoryOngkir($array);
+                    
+					if ($services != "") {
+						if (strcasecmp($service,$services) == 0) { // cek kesamaan service yg dibutuhkan
+							$hasil = array(
+								"success"	=> true,
+								"dari"		=> $dari,
+								"tujuan"	=> $tujuan,
+								"kurir"		=> $kurir,
+								"service"	=> $service,
+								"kuririd"	=> $kuririd,
+								"serviceid"	=> $serviceid,
+								"cod"		=> $ser->cod,
+								"harga"		=> $arr->data[$i]->cost,
+								"etd"		=> $etd,
+								"update"	=> date("Y-m-d H:i:s"),
+								"hargaperkg"=> $harga
+							);
+						} else {
+							if ($kurir == "jne") {
+								if ($services == "REG") {
+									if (strcasecmp($service,"CTC") == 0) { // REG dan CTC dianggap sama
+										$hasil = array(
+											"success"	=> true,
+											"dari"		=> $dari,
+											"tujuan"	=> $tujuan,
+											"kurir"		=> $kurir,
+											"service"	=> $service,
+											"kuririd"	=> $kuririd,
+											"serviceid"	=> $serviceid,
+											"cod"		=> $ser->cod,
+											"harga"		=> $arr->data[$i]->cost,
+											"etd"		=> $etd,
+											"update"	=> date("Y-m-d H:i:s"),
+											"hargaperkg"=> $harga
+										);
+									}
+								} elseif ($services == "YES") {
+									if (strcasecmp($service,"CTCYES") == 0) { // YES dan CTCYES dianggap sama
+										$hasil = array(
+											"success"	=> true,
+											"dari"		=> $dari,
+											"tujuan"	=> $tujuan,
+											"kurir"		=> $kurir,
+											"service"	=> $service,
+											"kuririd"	=> $kuririd,
+											"serviceid"	=> $serviceid,
+											"cod"		=> $ser->cod,
+											"harga"		=> $arr->data[$i]->cost,
+											"etd"		=> $etd,
+											"update"	=> date("Y-m-d H:i:s"),
+											"hargaperkg"=> $harga
+										);
+									}
+								}
+							}
+						}
+					} else {
+						$etd = $arr->data[$i]->etd;
+						$etd = $etd != "" ? $etd : "0";
+						$hasil = array(
+							"success"	=> true,
+							"dari"		=> $dari,
+							"tujuan"	=> $tujuan,
+							"kurir"		=> $kurir,
+							"service"	=> $arr->data[$i]->service,
+							"kuririd"	=> $kuririd,
+							"serviceid"	=> $serviceid,
+							"cod"		=> $ser->cod,
+							"harga"		=> $arr->data[$i]->cost,
+							"etd"		=> $etd,
+							"update"	=> date("Y-m-d H:i:s"),
+							"hargaperkg"=> $harga
+						);
+					}
+				}
+			}
+			//echo "dari: ".$dari.", tujuan: ".$tujuan.", berat: ".$berat.", kurir: ".$kurir."<br/>&nbsp;<br/>";
+			return $hasil;
+		}
+	}
+
+    public function saveHistoryOngkir(array $data): bool
+    {
+        $historyOngkir = $this->getHistoryOngkir(
+            $data['dari'],
+            $data['tujuan'],
+            $data['kurir'],
+            $data['service']
+        );
+
+        $builder = $this->db->table('histori_ongkir');
+
+        if (!empty($historyOngkir)) {
+            return $builder
+                ->where('id', $historyOngkir['id'])
+                ->update($data);
+        }
+            
+        return $builder->insert($data);
+        
+    }
+
+    public function createPembayaran(array $paymentData): int
+    {
+        $builder = $this->db->table('pembayaran');
+
+        $builder->insert($paymentData);
+
+        return $this->db->insertID();
+    }
+
+    public function updatePembayaran(int $paymentId, array $paymentData): bool
+    {
+        return $this->db->table('pembayaran')
+            ->where('id', $paymentId)
+            ->update($paymentData);
+    }
+
+    public function createTransaksi(array $transaksiData): int
+    {
+        $builder = $this->db->table('transaksi');
+
+        $builder->insert($transaksiData);
+
+        return $this->db->insertID();
+    }
+
+    public function updateTransaksiProduk(int $id, array $data): bool
+    {
+        return $this->db->table('transaksi_produk')
+            ->where('id', $id)
+            ->update($data);
+    }
+
+    public function insertData(string $table, array $data): int
+    {
+        $this->db->table($table)->insert($data);
+
+        return $this->db->insertID();
+    }
+
+    public function deleteData(string $table, $value, string $field = 'id'): bool
+    {
+        return $this->db->table($table)
+            ->where($field, $value)
+            ->delete();
+    }
+
+    public function updateData(string $table, array $data, array $conditions): bool
+    {
+        return $this->db->table($table)
+            ->where($conditions)
+            ->update($data);
+    }
+
+    public function getProfil($profileId, string $field = 'semua', string $searchBy = 'id')
+    {
+        $profile = $this->db->table('profil')
+            ->where($searchBy, $profileId)
+            ->get(1)
+            ->getRow();
+
+        // Mengembalikan satu field saja
+        if ($field !== 'semua') {
+            return $profile->{$field} ?? '';
+        }
+
+        // Mengembalikan seluruh data
+        if ($profile) {
+            return $profile;
+        }
+
+        // Jika data tidak ditemukan, buat object kosong
+        $emptyProfile = new \stdClass();
+
+        foreach ($this->db->getFieldData('profil') as $column) {
+            $emptyProfile->{$column->name} = null;
+        }
+
+        return $emptyProfile;
+    }
+
+    public function getData(string $table, $value, string $searchBy = 'id', bool $single = true)
+    {
+        $builder = $this->db->table($table)->where($searchBy, $value);
+
+        if ($single) {
+            $row = $builder->get(1)->getRow();
+
+            if ($row) {
+                return $row;
+            }
+
+            $emptyObject = new \stdClass();
+            foreach ($this->db->getFieldData($table) as $column) {
+                $emptyObject->{$column->name} = null;
+            }
+
+            return $emptyObject;
+        }
+
+        $result = $builder->get()->getResult();
+
+        if (!empty($result)) {
+            return $result;
+        }
+
+        $emptyObject = new \stdClass();
+        foreach ($this->db->getFieldData($table) as $column) {
+            $emptyObject->{$column->name} = null;
+        }
+
+        return [$emptyObject];
+    }
+
+    public function getAllData($table)
+    {
+        return $this->db->table($table)
+                        ->get()
+                        ->getResult();
+    }
+    
+    public function getBank($bankId, string $field = 'semua', string $searchBy = 'id')
+    {
+        $bank = $this->db->table('rekening_bank')
+            ->where($searchBy, $bankId)
+            ->get(1)
+            ->getRow();
+
+        // Mengembalikan satu field saja
+        if ($field !== 'semua') {
+            return $bank->{$field} ?? '';
+        }
+
+        // Mengembalikan seluruh data
+        if ($bank) {
+            return $bank;
+        }
+
+        // Jika data tidak ditemukan, buat object kosong
+        $emptyBank = new \stdClass();
+
+        foreach ($this->db->getFieldData('rekening_bank') as $column) {
+            $emptyBank->{$column->name} = null;
+        }
+
+        return $emptyBank;
+    }
+
+    public function getPembayaran($paymentId, string $field = 'semua', string $searchBy = 'id')
+    {
+        $payment = $this->db->table('pembayaran')
+            ->where($searchBy, $paymentId)
+            ->get(1)
+            ->getRow();
+
+        // Mengembalikan satu field saja
+        if ($field !== 'semua') {
+            return $payment->{$field} ?? '';
+        }
+
+        // Mengembalikan seluruh data
+        if ($payment) {
+            return $payment;
+        }
+
+        // Jika data tidak ditemukan, buat object kosong
+        $emptyPayment = new \stdClass();
+
+        foreach ($this->db->getFieldData('pembayaran') as $column) {
+            $emptyPayment->{$column->name} = null;
+        }
+
+        return $emptyPayment;
+    }
+
+    public function getTransaksiById(int $id): array
+    {
+        $builder = $this->db->table('transaksi');
+
+        // Filter berdasarkan user session yang sedang aktif
+        if (session()->has('usrid')) {
+            $builder->where('usrid', session()->get('usrid'));
+        } else {
+            $builder->where('usrid_temp', session()->get('usrid_temp'));
+        }
+
+        // Ambil semua transaksi yang cocok (mengembalikan array of objects)
+        $transactions = $builder->where('id', $id)
+                                ->get()
+                                ->getResult();
+
+        if (empty($transactions)) {
+            return [];
+        }
+
+        // Lakukan perulangan untuk melengkapi data setiap transaksi
+        foreach ($transactions as &$transaction) {
+
+            // 1. Ambil Data Pembayaran
+            $transaction->pembayaran = $this->db->table('pembayaran')
+                ->where('id', $transaction->idbayar)
+                ->get()
+                ->getRow();
+
+            // 2. Ambil Data Alamat Lengkap (+ Kec, Kab, & Prov)
+            $transaction->alamat = $this->db->table('alamat a')
+                ->select("a.*, kec.nama AS nama_kecamatan, k.nama AS nama_kabupaten, k.tipe AS tipe_kabupaten, p.nama AS nama_provinsi")
+                ->join('kec', 'kec.id = a.idkec', 'left')
+                ->join('kab k', 'k.id = kec.idkab', 'left')
+                ->join('prov p', 'p.id = k.idprov', 'left')
+                ->where('a.id', $transaction->alamat)
+                ->get()
+                ->getRow();
+
+            // 3. Ambil Data User (Lokal/Registered vs Temp/Guest)
+            if (!empty($transaction->usrid) && $transaction->usrid != 0) {
+                $transaction->user = $this->db->table('user_data')
+                    ->where('id', $transaction->usrid)
+                    ->get()
+                    ->getRow();
+            } elseif (!empty($transaction->usrid_temp) && $transaction->usrid_temp != 0) {
+                $transaction->user = $this->db->table('user_temp')
+                    ->where('id', $transaction->usrid_temp)
+                    ->get()
+                    ->getRow();
+            } else {
+                $transaction->user = null;
+            }
+
+            // 4. Ambil Seluruh Data Gudang beserta Kota Asal
+            $gudang = $this->db->table('gudang g')
+                ->select("g.*, CONCAT(k.tipe, ' ', k.nama) AS kota_asal, k.nama AS nama_kabupaten, k.tipe AS tipe_kabupaten")
+                ->join('kab k', 'k.id = g.idkab', 'left')
+                ->where('g.id', $transaction->gudang)
+                ->get()
+                ->getRow();
+
+            $transaction->gudang_detail = $gudang; 
+            $transaction->kota_asal     = $gudang ? $gudang->kota_asal : '-';
+
+            // 5. Cari Nama Kurir
+            $kurir = $this->db->table('kurir')
+                ->select('nama')
+                ->where('id', $transaction->kurir)
+                ->get()
+                ->getRow();
+
+            $transaction->nama_kurir = $kurir ? $kurir->nama : '-';
+
+            // 6. Cari Nama Paket
+            $paket = $this->db->table('paket')
+                ->select('nama')
+                ->where('id', $transaction->paket)
+                ->get()
+                ->getRow();
+
+            $transaction->nama_paket = $paket ? $paket->nama : '-';
+
+            // 7. Ambil Detail Produk Terkait
+            $transaction->produk = $this->db->table('transaksi_produk tp')
+                ->select("
+                    tp.*,
+                    p.*,
+                    pv.harga AS harga_variasi,
+                    vw.nama AS nama_warna,
+                    u.nama AS gambar
+                ")
+                ->join('produk p', 'p.id = tp.idproduk', 'left')
+                ->join('produk_variasi pv', 'pv.id = tp.variasi', 'left')
+                ->join('variasi_warna vw', 'vw.id = pv.idwarna', 'left')
+                ->join('upload u', "u.id_produk_variasi = pv.id", 'left')
+                ->where('tp.idtransaksi', $transaction->id)
+                ->get()
+                ->getResult();
+        }
+
+        return $transactions;
+    }
+
+    public function getTransaksiByPaymentId(int $paymentId): array
+    {
+        $transactions = $this->db->table('transaksi')
+            ->where('idbayar', $paymentId)
+            ->get()
+            ->getResult();
+
+        foreach ($transactions as &$transaction) {
+            $transaction->produk = $this->db->table('transaksi_produk tp')
+                ->select("
+                    tp.*,
+                    p.nama,
+                    p.harga,
+                    pv.harga AS harga_variasi,
+                    vw.nama AS nama_warna,
+                    u.nama AS gambar
+                ")
+                ->join('produk p', 'p.id = tp.idproduk')
+                ->join('produk_variasi pv', 'pv.id = tp.variasi', 'left')
+                ->join('variasi_warna vw', 'vw.id = pv.idwarna', 'left')
+                ->join('upload u', "u.id_produk_variasi = pv.id", 'left')
+                ->where('tp.idtransaksi', $transaction->id)
+                ->get()
+                ->getResult();
+        }
+
+        return $transactions;
+    }
+
+    public function getRekeningAdmin(): array
+    {
+        return $this->db->table('rekening')
+            ->select('rekening.*, rekening_bank.*, rekening_bank.id AS idBank')
+            ->join('rekening_bank', 'rekening_bank.id = rekening.idbank')
+            ->where('rekening.usrid', 0)
+            ->get()
+            ->getResult();
+    }
+
+    public function getTransaksiByOrderId(string $orderId): array
+    {
+        $builder = $this->db->table('transaksi');
+
+        if (session()->has('usrid')) {
+            $builder->where('usrid', session()->get('usrid'));
+        } else {
+            $builder->where('usrid_temp', session()->get('usrid_temp'));
+        }
+
+        $transactions = $builder->where('orderid', $orderId)
+                                ->get()
+                                ->getResult();
+
+        if (empty($transactions)) {
+            return [];
+        }
+
+        foreach ($transactions as &$transaction) {
+            
+            // 1. Ambil Data Pembayaran
+            $transaction->pembayaran = $this->db->table('pembayaran')
+                ->where('id', $transaction->idbayar)
+                ->get()
+                ->getRow();
+
+            // 2. Ambil SEMUA Data Alamat Lengkap beserta relasi Kota/Kabupaten & Kecamatan
+            // Seluruh kolom dari tabel alamat akan masuk ke properti $transaction->alamat
+            $transaction->alamat = $this->db->table('alamat a')
+                ->select("a.*, kec.nama AS nama_kecamatan, k.nama AS nama_kabupaten, k.tipe AS tipe_kabupaten")
+                ->join('kec', 'kec.id = a.idkec')
+                ->join('kab k', 'k.id = kec.idkab')
+                ->where('a.id', $transaction->alamat)
+                ->get()
+                ->getRow();
+
+            // 3. Cari Kota Asal (Gudang: transaksi -> gudang -> kabupaten)
+            $gudangKota = $this->db->table('gudang g')
+                ->select("CONCAT(k.tipe, ' ', k.nama) AS kota_asal")
+                ->join('kab k', 'k.id = g.idkab')
+                ->where('g.id', $transaction->gudang)
+                ->get()
+                ->getRow();
+            
+            $transaction->kota_asal = $gudangKota ? $gudangKota->kota_asal : '-';
+
+            // 4. Cari Nama Kurir
+            $kurir = $this->db->table('kurir')
+                ->where('id', $transaction->kurir)
+                ->get()
+                ->getRow();
+            
+            $transaction->nama_kurir = $kurir ? $kurir->nama : '-';
+            $transaction->kurir_rajaongkir = $kurir ? $kurir->rajaongkir : '-';
+
+            // 5. Cari Nama Paket
+            $paket = $this->db->table('paket')
+                ->select('nama')
+                ->where('id', $transaction->paket)
+                ->get()
+                ->getRow();
+            
+            $transaction->nama_paket = $paket ? $paket->nama : '-';
+
+            // 6. Ambil Detail Produk Terkait
+            $transaction->produk = $this->db->table('transaksi_produk tp')
+                ->select("
+                    tp.*,
+                    p.nama,
+                    p.harga,
+                    pv.harga AS harga_variasi,
+                    vw.nama AS nama_warna,
+                    u.nama AS gambar
+                ")
+                ->join('produk p', 'p.id = tp.idproduk')
+                ->join('produk_variasi pv', 'pv.id = tp.variasi', 'left')
+                ->join('variasi_warna vw', 'vw.id = pv.idwarna', 'left')
+                ->join('upload u', "u.id_produk_variasi = pv.id", 'left')
+                ->where('tp.idtransaksi', $transaction->id)
+                ->get()
+                ->getResult();
+        }
+
+        return $transactions;
+    }
+
+    public function getUnpaidPayments($page = 1)
+    {
+        $this->setTable('pembayaran');
+        
+        $pembayaranList = $this->where('status', 0)
+                                ->where('usrid', session()->get('usrid'))
+                                ->orderBy('status', 'ASC')
+                                ->orderBy('id', 'DESC')
+                                ->paginate(10, 'default', $page);
+
+        if (empty($pembayaranList)) {
+            return [];
+        }
+
+        $db = db_connect();
+
+        foreach ($pembayaranList as &$pembayaran) {
+
+            $konfirmasi = $db->table('konfirmasi')
+                            ->where('idbayar', $pembayaran->id) 
+                            ->get()
+                            ->getResultObject();
+
+            // Simpan data konfirmasi ke properti Object pembayaran (akan bernilai null jika tidak ada)
+            $pembayaran->konfirmasi = $konfirmasi;
+            
+            // Perbaikan: Akses ID menggunakan $pembayaran->id (bukan array)
+            $transaksi = $db->table('transaksi')
+                            ->where('idbayar', $pembayaran->id) 
+                            ->get()
+                            ->getRowObject(); // Menggunakan getRowObject agar senada berbentuk Object
+
+            if ($transaksi) {
+                // Ambil semua data dari 'transaksi_produk' berdasarkan id transaksi
+                $transaksiProdukList = $db->table('transaksi_produk')
+                                        ->where('idtransaksi', $transaksi->id) 
+                                        ->get()
+                                        ->getResultObject(); // Menggunakan Object
+
+                // Lacak data produk, variasi, warna, dan gambar
+                foreach ($transaksiProdukList as &$tp) {
+                    
+                    // Cari data ke tabel 'produk'
+                    $tp->produk = $db->table('produk')
+                                    ->where('id', $tp->idproduk)
+                                    ->get()
+                                    ->getRowObject();
+
+                    // Cari data ke tabel 'produk_variasi'
+                    $variasi = $db->table('produk_variasi')
+                                ->where('id', $tp->variasi)
+                                ->get()
+                                ->getRowObject();
+
+                    if ($variasi) {
+                        // Cari nama warna di 'variasi_warna'
+                        $variasi->warna = $db->table('variasi_warna')
+                                            ->where('id', $variasi->idwarna)
+                                            ->get()
+                                            ->getRowObject();
+                        
+                        // Ambil gambar tambahan dari tabel 'upload'
+                        $variasi->gambar = $db->table('upload')
+                                            ->where('id_produk_variasi', $variasi->id)
+                                            ->get()
+                                            ->getRowObject(); 
+                    }
+
+                    $tp->variasi_detail = $variasi;
+                }
+
+                // Gabungkan list produk ke dalam struktur data transaksi
+                $transaksi->produk_list = $transaksiProdukList;
+            }
+
+            // Simpan data transaksi ke dalam properti Object pembayaran
+            $pembayaran->transaksi = $transaksi;
+        }
+
+        return $pembayaranList;
+    }
+
+    function arrEnc($arr, $type = "encode")
+    {
+        if ($type == "encode") {
+            $result = base64_encode(serialize($arr));
+        } else {
+            $result = unserialize(base64_decode($arr));
+        }
+
+        return $result;
+    }
+
+    public function getTransactionsByStatus($status = 4, $page = 1, $orderColumn = 'id', $orderDirection = 'DESC')
+    {
+        $this->setTable('transaksi');
+        
+        $builder = $this->where('usrid', session()->get('usrid'));
+
+        // Fleksibilitas: Jika parameter $status berupa array, gunakan whereIn. Jika bukan, gunakan where biasa.
+        if (is_array($status)) {
+            $builder->whereIn('status', $status);
+        } else {
+            $builder->where('status', $status);
+        }
+
+        $transaksiList = $builder->orderBy($orderColumn, $orderDirection)
+                                ->paginate(10, 'default', $page);
+
+        if (empty($transaksiList)) {
+            return [];
+        }
+
+        $db = db_connect();
+
+        foreach ($transaksiList as &$transaksi) {
+            
+            $transaksiProdukList = $db->table('transaksi_produk')
+                                    ->where('idtransaksi', $transaksi->id) 
+                                    ->get()
+                                    ->getResultObject(); 
+
+            foreach ($transaksiProdukList as &$tp) {
+                
+                $tp->produk = $db->table('produk')
+                                ->where('id', $tp->idproduk)
+                                ->get()
+                                ->getRowObject();
+
+                $variasi = $db->table('produk_variasi')
+                            ->where('id', $tp->variasi)
+                            ->get()
+                            ->getRowObject();
+
+                if ($variasi) {
+                    $variasi->warna = $db->table('variasi_warna')
+                                        ->where('id', $variasi->idwarna)
+                                        ->get()
+                                        ->getRowObject();
+                    
+                    $variasi->gambar = $db->table('upload')
+                                        ->where('id_produk_variasi', $variasi->id)
+                                        ->get()
+                                        ->getRowObject(); 
+                }
+                $tp->variasi_detail = $variasi;
+            }
+
+            $transaksi->produk_list = $transaksiProdukList;
+        }
+
+        return $transaksiList;
+    }
+
+    public function getShippedTransactions(bool $hasResi = true, int $page = 1): array
+    {
+        $this->setTable('transaksi');
+        
+        $builder = $this->where('status', 2)
+                        ->where('usrid', session()->get('usrid'));
+
+        // Filter berdasarkan ketersediaan resi
+        if ($hasResi) {
+            $builder->where('resi !=', '')
+                    ->where('resi IS NOT NULL');
+        } else {
+            $builder->groupStart()
+                        ->where('resi', '')
+                        ->orWhere('resi IS NULL')
+                    ->groupEnd();
+        }
+
+        $transaksiList = $builder->orderBy('id', 'DESC')
+                                ->paginate(10, 'default', $page);
+
+        if (empty($transaksiList)) {
+            return [];
+        }
+
+        $db = db_connect();
+
+        foreach ($transaksiList as &$transaksi) {
+            
+            $transaksiProdukList = $db->table('transaksi_produk')
+                                    ->where('idtransaksi', $transaksi->id) 
+                                    ->get()
+                                    ->getResultObject(); 
+
+            foreach ($transaksiProdukList as &$tp) {
+                
+                $tp->produk = $db->table('produk')
+                                ->where('id', $tp->idproduk)
+                                ->get()
+                                ->getRowObject();
+
+                $variasi = $db->table('produk_variasi')
+                            ->where('id', $tp->variasi)
+                            ->get()
+                            ->getRowObject();
+
+                if ($variasi) {
+                    $variasi->warna = $db->table('variasi_warna')
+                                        ->where('id', $variasi->idwarna)
+                                        ->get()
+                                        ->getRowObject();
+                    
+                    $variasi->gambar = $db->table('upload')
+                                        ->where('id_produk_variasi', $variasi->id)
+                                        ->get()
+                                        ->getRowObject(); 
+                }
+                $tp->variasi_detail = $variasi;
+            }
+
+            $transaksi->produk_list = $transaksiProdukList;
+        }
+
+        return $transaksiList;
+    }
+
+    public function getPesananCount($usrid = 0, $status = 'semua')
+    {
+        $db = db_connect();
+        $builder = $db->table('transaksi');
+
+        // Filter berdasarkan ID User
+        $builder->where('usrid', $usrid);
+
+        switch ($status) {
+            case 'bayar':
+                $builder->where('status', 0);
+                break;
+
+            case 'proses':
+                $builder->where('status', 1);
+                break;
+
+            case 'kirim':
+                // Dalam Pengiriman (status = 2)
+                $builder->where('status', 2);
+                break;
+
+            case 'selesai':
+                // Pesanan Selesai / Diterima (status = 3)
+                $builder->where('status', 3);
+                break;
+
+            case 'batal':
+                $builder->where('status', 4);
+                break;
+
+            default:
+                $builder->where('status !=', 4);
+                break;
+        }
+
+        return $builder->countAllResults();
+    }
+
+    public function getPesananTerakhir($usrid = 0, $limit = 5)
+    {
+        return $this->db->table('transaksi t')
+                        ->select('t.*, p.total, p.status AS status_bayar')
+                        ->join('pembayaran p', 'p.id = t.idbayar', 'left')
+                        ->where('t.usrid', $usrid)
+                        ->orderBy('t.id', 'DESC')
+                        ->limit($limit)
+                        ->get()
+                        ->getResult();
     }
 }
 

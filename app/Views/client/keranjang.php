@@ -19,7 +19,7 @@
 
                 <?php if($lastGudang != $car->gudang): ?>
                     <div class="cart-city p-3 mb-4 rounded border">
-                        Dikirim dari &nbsp;<b><i class="fas fa-map-marker-alt"></i> Kota <?= $car->gudang ?></b>
+                        Dikirim dari &nbsp;<b><i class="fas fa-map-marker-alt"></i> <?= $car->gudang->tipe ?> <?= $car->gudang->nama ?></b>
                     </div>
                     <?php $lastGudang = $car->gudang; ?>
                 <?php endif; ?>
@@ -311,6 +311,18 @@
     $(document).on("change", ".checkbox", function(){
         hitungTotal();
     });
+
+    <?php if(session()->getFlashdata('swal_error')): ?>
+
+        $(function() {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal Checkout',
+                text: '<?= session()->getFlashdata('swal_error') ?>'
+            });
+        });
+
+    <?php endif; ?>
 
 </script>
 

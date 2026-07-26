@@ -143,7 +143,7 @@ if($totalstok == 0){
     <input type="hidden" name="idproduk" value="<?=$prod->id?>">
 
     <div class="d-grid">
-        <button type="submit" class="btn btn-success">
+        <button type="submit" class="btn btn-submit">
             <i class="fas fa-check"></i> Tambahkan ke Keranjang
         </button>
     </div>

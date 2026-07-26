@@ -93,19 +93,19 @@
       <?php foreach ($produkUnggulan as $pu): ?>
         <!-- PRODUCT -->
         <div class="col-6 col-md-4 col-lg-3">
-          <div class="product-card h-100">
+          <div class="product-card h-100"  onclick="window.location.href='<?php echo site_url('produk/'.$pu->url); ?>'">
             <img src="<?= base_url('cdn/uploads/'.$pu->nama_gambar)?>" alt="" alt="<?= $pu->nama_gambar ?>" >
             <div class="price">
               <div class="price-old">
-                Rp<?= number_format($pu->harga, 0, ',', '.') ?>
+                Rp<?= number_format($pu->harga_coret, 0, ',', '.') ?>
               </div>
 
               <div class="price-new">
-                Rp<?= number_format($pu->harga_coret, 0, ',', '.') ?>
+                Rp<?= number_format($pu->harga, 0, ',', '.') ?>
               </div>
             </div>
             <h3><?= $pu->nama ?></h3>
-            <button class="add-to-cart-btn" onclick="addtocart(<?=$pu->id?>)">TAMBAH KE KERANJANG</button>
+            <button class="add-to-cart-btn" onclick="event.stopPropagation(); addtocart(<?=$pu->id?>)">TAMBAH KE KERANJANG</button>
           </div>
         </div>
       <?php endforeach; ?>
@@ -132,19 +132,19 @@
       <?php foreach ($produkTerbaru as $pt): ?>
         <!-- PRODUCT -->
         <div class="col-6 col-md-4 col-lg-3">
-          <div class="product-card h-100">
+          <div class="product-card h-100" onclick="window.location.href='<?php echo site_url('produk/'.$pt->url); ?>'">
             <img src="<?= base_url('cdn/uploads/'.$pt->gambar)?>" alt="" alt="<?= $pt->gambar ?>" >
             <div class="price">
               <div class="price-old">
-                Rp<?= number_format($pt->harga, 0, ',', '.') ?>
+                Rp<?= number_format($pt->harga_coret, 0, ',', '.') ?>
               </div>
 
               <div class="price-new">
-                Rp<?= number_format($pt->harga_coret, 0, ',', '.') ?>
+                Rp<?= number_format($pt->harga, 0, ',', '.') ?>
               </div>
             </div>
             <h3><?= $pt->nama ?></h3>
-            <button class="add-to-cart-btn" onclick="addtocart(<?=$pt->id?>)">TAMBAH KE KERANJANG</button>
+            <button class="add-to-cart-btn" onclick="event.stopPropagation(); addtocart(<?=$pt->id?>)">TAMBAH KE KERANJANG</button>
           </div>
         </div>
       <?php endforeach; ?>

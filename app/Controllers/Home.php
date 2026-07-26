@@ -4,27 +4,7 @@ namespace App\Controllers;
 
 class Home extends BaseController {
     public function index() {
-        $set = $this->func->globalset('semua');
-
-        // login check (CI3-compatible)
-        $usrid = $this->func->cekLogin();  // <-- panggil model
-        $isLogin = $usrid > 0;
-
-        // keranjang & wishlist
-        $session = session();
-        // dd(session()->get());
-
-        $keranjang = $this->func->getKeranjang();
-
-        $kategori = $this->func->getKategori();
-
-        $keywords = '';
-        foreach ($kategori as $k) {
-            $keywords .= ',' . $k->nama;
-        }
-
-        $cari = esc($this->request->getGet('cari') ?? '', 'url');
-        $promo = $this->func->getPromoAktif();
+        $data = $this->data;
 
         $jmlProdukPerKategori = $this->func->getJumlahProdukPerKategori();
         $data['jmlProdukPerKategori'] = [];
@@ -32,26 +12,11 @@ class Home extends BaseController {
             $data['jmlProdukPerKategori'][$item->id] = $item->jumlah_produk;
         }
 
-        $produkUnggulan = $this->func->getProdukUnggulan();
-        $produkTerbaru = $this->func->getProdukTerbaru();
-
-        // data ke view
-        $data = [
-            'set'       => $set,
-            'nama'      => $set->nama . ' – ' . $set->slogan,
-            'desc'      => 'Web toko furnitur ' . $set->nama,
-            'cari' => $cari,
-            'keywords'  => ltrim($keywords, ','),
-            'img' => base_url('cdn/assets/img/' . $set->favicon),
-            'url' => site_url(),
-            'isLogin'   => $isLogin,
-            'keranjang' => $keranjang,
-            'kategori'  => $kategori,
-            'promo'     => $promo,
-            'jmlProdukPerKategori' => $data['jmlProdukPerKategori'] ?? [],
-            'produkUnggulan' => $produkUnggulan,
-            'produkTerbaru' => $produkTerbaru
-        ];
+        // $data['cari'] = esc($this->request->getGet('cari') ?? '', 'url');
+        $data['promo'] = $this->func->getPromoAktif();
+        $data['jmlProdukPerKategori'] = $data['jmlProdukPerKategori'] ?? [];
+        $data['produkUnggulan'] = $this->func->getProdukUnggulan();
+        $data['produkTerbaru'] = $this->func->getProdukTerbaru();
 
         return view('client/home', $data);
     }
@@ -298,13 +263,6 @@ class Home extends BaseController {
 
         $dataKeranjang = $this->func->getKeranjangFull();
 
-        $tema = (isset($set->tema)) ? $set->tema: 0;
-
-        // $total = 0;
-        // foreach ($dataKeranjang as $k) {
-        //     $total += $k->harga * $k->jumlah;
-        // }
-
         return view('client/keranjang', [
             'set' => $set,
             'desc'      => 'Web toko furnitur ' . $set->nama,
@@ -318,6 +276,92 @@ class Home extends BaseController {
             'kategori' => $kategori,
             'isLogin' => $isLogin,
         ]);
+    }
+
+    public function _404()
+    {
+        $data = $this->data;
+        $data['title'] = 'Halaman tidak ditemukan';
+        return view('errors/html/error_404', $data);
+    }
+
+    public function invoice()
+    {
+        $session = session();
+
+        if (!($this->func->cekLogin() || $session->has('usrid_temp'))) {
+            return redirect()->to(site_url('signin'));
+        }
+
+        $data = $this->data;
+
+        $paymentId = (int) $this->request->getGet('inv');
+
+        if ($paymentId <= 0) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        // Revoke invoice
+        if ($this->request->getGet('revoke')) {
+            $payment = $this->func->getPembayaran($paymentId);
+
+            $this->func->updateData(
+                'pembayaran',
+                [
+                    'invoice'    => $payment->invoice . date('Hi'),
+                ],
+                [
+                    'id' => $paymentId
+                ]
+            );
+        }
+
+        // Data pembayaran
+        $payment = $this->func->getPembayaran($paymentId);
+        $data['data'] = $payment;
+
+        // Data transaksi
+        $transactions = $this->func->getTransaksiByPaymentId($paymentId);
+
+        if (empty($transactions)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        // Data user
+        $user = $session->has('usrid')
+            ? $this->func->getUser($payment->usrid)
+            : $this->func->getUserTemp($payment->usrid_temp);
+
+        $data['user'] = $user;
+
+        // Data alamat
+        $address = $this->func->getAlamatById($transactions[0]->alamat);
+
+        // Rekening bank
+        $banks = $this->func->getRekeningAdmin();
+        
+
+        $data['data'] = $payment;
+        $data['transaksi'] = $transactions;
+        $data['alamat'] = $address;
+        $data['bank'] = $banks;
+
+        $session = session();
+
+        $data['namaUser'] = $session->has('usrid')
+            ? $this->func->getProfil($user->id, 'nama', 'usrid')
+            : $user->nama;
+
+        $data['ubahMetode'] = $this->request->getGet('ubahmetode');
+
+        if ($payment->transfer > 0) {
+            $data['bayarTotal'] = $payment->transfer + $payment->kode_bayar;
+            $data['biayaCod'] = $data['set']->biaya_cod > 100
+                ? $data['set']->biaya_cod
+                : $data['bayarTotal'] * ((int) $data['set']->biaya_cod / 100);
+        }
+
+        return view('client/detail_pembayaran', $data);
     }
 
 }
