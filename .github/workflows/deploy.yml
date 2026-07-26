@@ -22,7 +22,7 @@ jobs:
       - name: Install Dependencies
         run: composer install --no-dev --optimize-autoloader
 
-      # Pembersihan service Google API agar tidak bengkak
+      # Pembersihan service Google API agar ringan
       - name: Cleanup Unused Google Services
         run: |
           php -r '
@@ -50,8 +50,6 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ./htdocs/
-          # Memaksa pembuatan folder otomatis jika direktori belum ada di server
-          force-complete-file-list: true
           exclude: |
             **/.git*
             **/.git*/**
