@@ -20,7 +20,9 @@ jobs:
           coverage: none
 
       - name: Install Dependencies
-        run: composer install --no-dev
+        run: |
+          composer install --no-dev --no-scripts
+          composer dump-autoload --no-dev
 
       - name: Cleanup Unused Google Services
         run: |
