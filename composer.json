@@ -40,5 +40,11 @@
     },
     "scripts": {
         "test": "phpunit"
-    }
+    },
+    "extra": {
+    "google/apiclient-services": [
+      "Drive",
+      "Oauth2"
+    ]
+  }
 }
