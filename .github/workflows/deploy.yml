@@ -1,29 +1,10 @@
-name: Deploy CI4 to InfinityFree
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  web-deploy:
-    name: Deploying to InfinityFree
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get latest code
-        uses: actions/checkout@v4
-
-      # Install composer dependencies secara otomatis di runner GitHub
-      - name: Install Dependencies
-        run: composer install --no-dev --optimize-autoloader
-
-      - name: Sync files via FTP
+- name: Sync files via FTP
         uses: SamKirkland/ftp-deploy-action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /htdocs/
+          server-dir: ./htdocs/
           exclude: |
             **/.git*
             **/.git*/**
