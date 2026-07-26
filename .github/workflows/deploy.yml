@@ -13,8 +13,9 @@ jobs:
       - name: Get latest code
         uses: actions/checkout@v4
 
+      # Menggunakan action FTP resmi & paling stabil: SamKirland/ftp-deploy-action
       - name: Sync files via FTP
-        uses: SamKirsch/ftp-deploy-action@v4.3.5
+        uses: SamKirland/ftp-deploy-action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
