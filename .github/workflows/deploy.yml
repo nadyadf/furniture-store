@@ -22,19 +22,22 @@ jobs:
       - name: Install Dependencies
         run: composer install --no-dev --optimize-autoloader
 
-      # PERINTAH PENTING: Hapus service Google API yang tidak digunakan sebelum FTP upload
-      # Ini menghapus puluhan ribu file sampah VMwareEngine, Compute, dll. yang bikin gantung
+      # Pembersihan khusus folder Google Services yang aman tanpa mengganggu file Composer lain
       - name: Cleanup Unused Google Services
         run: |
           php -r '
-            $servicesDir = "vendor/google/apiclient-services/src";
+            $servicesDir = __DIR__ . "/vendor/google/apiclient-services/src";
             if (is_dir($servicesDir)) {
                 $keep = ["Drive.php", "Drive", "Oauth2.php", "Oauth2"];
                 $files = glob($servicesDir . "/*");
                 foreach ($files as $file) {
                     $name = basename($file);
                     if (!in_array($name, $keep)) {
-                        exec("rm -rf " . escapeshellarg($file));
+                        if (is_dir($file)) {
+                            exec("rm -rf " . escapeshellarg($file));
+                        } else {
+                            @unlink($file);
+                        }
                     }
                 }
             }
