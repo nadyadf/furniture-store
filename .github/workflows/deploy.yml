@@ -13,8 +13,11 @@ jobs:
       - name: Get latest code
         uses: actions/checkout@v4
 
+      # Install composer dependencies secara otomatis di runner GitHub
+      - name: Install Dependencies
+        run: composer install --no-dev --optimize-autoloader
+
       - name: Sync files via FTP
-        # Pastikan S dan K kapital di SamKirland
         uses: SamKirkland/ftp-deploy-action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
