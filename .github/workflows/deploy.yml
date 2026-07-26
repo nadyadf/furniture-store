@@ -13,9 +13,32 @@ jobs:
       - name: Get latest code
         uses: actions/checkout@v4
 
-      # Install composer dependencies secara otomatis di runner GitHub
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
       - name: Install Dependencies
         run: composer install --no-dev --optimize-autoloader
+
+      # PERINTAH PENTING: Hapus service Google API yang tidak digunakan sebelum FTP upload
+      # Ini menghapus puluhan ribu file sampah VMwareEngine, Compute, dll. yang bikin gantung
+      - name: Cleanup Unused Google Services
+        run: |
+          php -r '
+            $servicesDir = "vendor/google/apiclient-services/src";
+            if (is_dir($servicesDir)) {
+                $keep = ["Drive.php", "Drive", "Oauth2.php", "Oauth2"];
+                $files = glob($servicesDir . "/*");
+                foreach ($files as $file) {
+                    $name = basename($file);
+                    if (!in_array($name, $keep)) {
+                        exec("rm -rf " . escapeshellarg($file));
+                    }
+                }
+            }
+          '
 
       - name: Sync files via FTP
         uses: SamKirkland/ftp-deploy-action@v4.3.5
