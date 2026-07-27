@@ -26,5 +26,4 @@ jobs:
             **/node_modules/**
             **/tests/**
             **/writable/debugbar/**
-            **/vendor/**
             .env
