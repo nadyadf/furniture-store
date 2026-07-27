@@ -64,7 +64,7 @@
       <?php foreach ($kategori as $k): ?>
         <!-- ITEM -->
         <div class="col-6 col-md-4 col-lg-3">
-          <a href="<?= $k->url ?>" class="category-card d-block">
+          <a href="katalog/<?= $k->url ?>" class="category-card d-block">
             <img src="<?= base_url('cdn/uploads/'.$k->icon) ?>" alt="<?= $k->nama ?>" class="img-fluid">
             <div class="overlay">
               <span class="count"><?= $jmlProdukPerKategori[$k->id] ?? 0 ?> produk</span>
