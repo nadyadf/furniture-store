@@ -13,37 +13,6 @@ jobs:
       - name: Get latest code
         uses: actions/checkout@v4
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          coverage: none
-
-      - name: Install Dependencies
-        run: |
-          composer install --no-dev --no-scripts
-          composer dump-autoload --no-dev
-
-      - name: Cleanup Unused Google Services
-        run: |
-          php -r '
-            $servicesDir = "vendor/google/apiclient-services/src";
-            if (is_dir($servicesDir)) {
-                $keep = ["Drive.php", "Drive", "Oauth2.php", "Oauth2"];
-                $files = glob($servicesDir . "/*");
-                foreach ($files as $file) {
-                    $name = basename($file);
-                    if (!in_array($name, $keep)) {
-                        if (is_dir($file)) {
-                            exec("rm -rf " . escapeshellarg($file));
-                        } else {
-                            @unlink($file);
-                        }
-                    }
-                }
-            }
-          '
-
       - name: Sync files via FTP
         uses: SamKirkland/ftp-deploy-action@v4.3.5
         with:
@@ -57,5 +26,5 @@ jobs:
             **/node_modules/**
             **/tests/**
             **/writable/debugbar/**
-            .env
             **/vendor/**
+            .env
