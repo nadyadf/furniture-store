@@ -35,6 +35,11 @@
 .navbar .dropdown-menu {
     background-color: #212529; /* sama seperti bg-dark */
     border: 1px solid rgba(255,255,255,0.1);
+    position: absolute !important;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%); /* Mengetengahkan dropdown terhadap tombolnya */
+    z-index: 1050;
 }
 
 /* Item dropdown */
