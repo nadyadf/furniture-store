@@ -31,6 +31,20 @@
   font-family: 'Playfair Display', serif;
 }
 
+
+@media (max-width: 767.98px) {
+  #mainNavbar {
+    position: relative !important; /* Tidak melayang di HP */
+  }
+  #promoCarousel {
+    margin-top: 0 !important;
+  }
+
+  .brand-name {
+    font-size: 14px !important; /* Silakan ubah ukurannya (misal: 0.8rem / 14px) sesuai selera */
+  }
+}
+
 /* Background dropdown */
 .navbar .dropdown-menu {
     background-color: #212529; /* sama seperti bg-dark */
@@ -833,3 +847,4 @@ body {
   background-color: var(--color-primary-dark);
   color: white;
 }
+
