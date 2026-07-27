@@ -2,7 +2,6 @@
 # Operating Specific Junk Files
 #-------------------------
 
-/vendor/
 /writable/
 /.env
 /node_modules/
@@ -90,7 +89,7 @@ phpunit
 #-------------------------
 # Composer
 #-------------------------
-vendor/
+# vendor/
 
 #-------------------------
 # IDE / Development Files
