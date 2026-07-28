@@ -22,11 +22,11 @@
 					<!-- BARIS 2: MENU NAVIGASI (Rata Tengah di Mobile) -->
 					<div class="col-12 col-md-6 col-lg-4 mb-2 mb-lg-0 d-flex align-items-center justify-content-center justify-content-md-end justify-content-lg-start">
 						<ul class="navbar-nav flex-row justify-content-center align-items-center w-100">
-							<li class="nav-item mx-2">
+							<li class="nav-item mx-2 mx-md-3">
 								<a class="nav-link py-1" href="<?=site_url("katalog")?>">KATALOG</a>
 							</li>
 							
-							<li class="nav-item dropdown mx-2 position-relative">
+							<li class="nav-item dropdown mx-2 mx-md-3 position-relative">
 								<a class="nav-link dropdown-toggle py-1" role="button" data-bs-toggle="dropdown" aria-expanded="false">KATEGORI</a>
 								<ul class="dropdown-menu shadow">
 									<?php foreach ($kategori as $k): ?>
@@ -36,13 +36,13 @@
 							</li>
 
 							<?php if(!$isLogin){ ?>
-								<li class="nav-item mx-2 d-flex align-items-center">
+								<li class="nav-item mx-2 mx-md-3 d-flex align-items-center">
 									<a class="btn btn-outline-light btn-sm" href="<?=site_url("signin")?>">
 										<i class="fas fa-sign-in-alt me-1"></i> Masuk
 									</a>
 								</li>
 							<?php } else { ?>
-								<li class="nav-item mx-2">
+								<li class="nav-item mx-2 mx-md-3">
 									<a class="nav-link pesanan py-1" href="<?=site_url('manage/pesanan')?>"><i class="fas fa-box"></i> Pesanan</a>
 								</li>
 							<?php } ?>
