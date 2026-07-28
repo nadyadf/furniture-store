@@ -6,14 +6,15 @@
 			<img class="logo" src="<?= base_url('cdn/assets/img/'.$set->logo) ?>" style="max-width:70%;" />
 		</div>
 
-		<div class="row px-4">
-			<div class="section col-md-6 ms-auto me-auto pt-4">
+		<!-- KODE PERBAIKAN -->
+		<div class="row justify-content-center px-2">
+			<div class="section col-12 col-md-8 col-lg-6 pt-4">
 				<div class="fw-bold font-bold text-center mb-3 fs-4">Mendaftar</div>
 
-				<div class="px-5 mx-xl-0 px-sm-3" id="load">
+				<div class="px-2 px-sm-3" id="load">
 					<?php if($set->login_otp == 0){ ?>
 
-					<form id="signup" class="pb-5 px-5">
+					<form id="signup" class="pb-5 px-2 px-sm-3">
 
 						<div class="mb-3">
 							<input class="form-control" type="text" id="nama" name="nama" placeholder="Nama Lengkap" required>
