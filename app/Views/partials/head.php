@@ -20,7 +20,7 @@
 					</div>
 
 					<!-- BARIS 2: MENU NAVIGASI (Rata Tengah di Mobile) -->
-					<div class="col-12 col-md-6 col-lg-4 mb-2 mb-lg-0 d-flex align-items-center justify-content-center justify-content-md-end justify-content-lg-start">
+					<div class="col-12 col-md-6 col-lg-4 mb-3 mb-lg-0 d-flex align-items-center justify-content-center justify-content-md-end justify-content-lg-start">
 						<ul class="navbar-nav flex-row justify-content-center align-items-center w-100">
 							<li class="nav-item mx-2 mx-md-3">
 								<a class="nav-link py-1" href="<?=site_url("katalog")?>">KATALOG</a>
