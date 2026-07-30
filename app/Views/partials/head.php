@@ -20,7 +20,7 @@
 					</div>
 
 					<!-- BARIS 2: MENU NAVIGASI (Rata Tengah di Mobile) -->
-					<div class="col-12 col-md-6 col-lg-4 mb-3 mb-lg-0 d-flex align-items-center justify-content-center justify-content-md-end justify-content-lg-start">
+					<div class="col-12 col-md-6 col-lg-5 mb-3 mb-lg-0 d-flex align-items-center justify-content-center justify-content-md-end justify-content-lg-start">
 						<ul class="navbar-nav flex-row justify-content-center align-items-center w-100">
 							<li class="nav-item mx-2 mx-md-3">
 								<a class="nav-link py-1" href="<?=site_url("katalog")?>">KATALOG</a>
@@ -50,7 +50,7 @@
 					</div>
 
 					<!-- BARIS 3: SEARCH BAR + KERANJANG + PROFIL (Rata Tengah di Mobile) -->
-					<div class="col-12 col-md-12 col-lg-4 mb-1 mb-lg-0 d-flex align-items-center justify-content-center justify-content-md-start gap-2 pe-0">
+					<div class="col-12 col-md-12 col-lg-3 mb-1 mb-lg-0 d-flex align-items-center justify-content-center justify-content-md-start gap-3">
 						<form style="max-width:240px; width:100%;" action="<?= !empty($slug) ? site_url('katalog/'.$slug) : site_url('katalog') ?>">
 							<div class="input-group input-group-sm">
 								<input type="text" class="form-control rounded-start-pill" name="cari" placeholder="Cari Produk" value="<?= esc($cari ?? '') ?>" />
@@ -63,17 +63,17 @@
 						</a>
 
 						<?php if($isLogin){?>
-							<div class="dropdown position-relative">
+							<div class="dropdown">
 								<button class="btn border-0 p-0 text-white" type="button" data-bs-toggle="dropdown" aria-expanded="false">
 									<span style="font-size:24px;">
 										<i class="fa-solid fa-circle-user"></i>
 									</span>
 								</button>
 								<ul class="dropdown-menu dropdown-menu-end shadow">
-									<li><a class="dropdown-item text-center" href="/akun">Akun Saya</a></li>
+									<li><a class="dropdown-item" href="/akun">Akun Saya</a></li>
 									<li><hr class="dropdown-divider"></li>
 									<li>
-										<button type="button" class="dropdown-item text-danger text-center" onclick="signoutNow()">Log out</button>
+										<button type="button" class="dropdown-item text-danger" onclick="signoutNow()">Log out</button>
 									</li>
 								</ul>
 							</div>

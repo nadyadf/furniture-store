@@ -54,6 +54,7 @@
     left: 50%;
     transform: translateX(-50%); /* Mengetengahkan dropdown terhadap tombolnya */
     z-index: 1050;
+    min-width: 140px;
 }
 
 /* Item dropdown */
@@ -65,6 +66,12 @@
 .navbar .dropdown-item:hover {
     background-color: #a47148;
     color: #fff;
+}
+
+.navbar .dropdown-menu.dropdown-menu-end {
+  transform: none !important;
+  right: 0 !important;
+  left: auto !important;
 }
 
 body {
