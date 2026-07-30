@@ -226,28 +226,32 @@
 
                             <div class="row g-4">
                                 <?php foreach($produkterkait as $pt): ?>
-                                    <div class="col-6 col-md-6 col-lg-3">
+                                    <div class="col-6 col-md-6 col-lg-3 mb-3">
                                         <div class="product-card card border-0 shadow-sm h-100" onclick="window.location.href='<?php echo site_url('produk/'.$pt->url); ?>'">
-                                            <img src="<?= base_url('cdn/uploads/'.$pt->gambar) ?>">
 
+                                            <!-- WRAPPER GAMBAR + BADGE HARGA -->
+                                            <div class="product-img-wrapper">
+                                            <img src="<?= base_url('cdn/uploads/'.$pt->gambar) ?>" alt="<?= esc($pt->nama) ?>">
+
+                                            <!-- BADGE HARGA -->
                                             <div class="price">
-
                                                 <?php if($pt->harga_coret > 0): ?>
                                                 <div class="price-old">
-                                                Rp<?= number_format($pt->harga_coret,0,',','.') ?>
+                                                    Rp<?= number_format($pt->harga_coret, 0, ',', '.') ?>
                                                 </div>
-                                                <?php endif ?>
+                                                <?php endif; ?>
 
                                                 <div class="price-new">
-                                                Rp<?= number_format($pt->harga,0,',','.') ?>
+                                                Rp<?= number_format($pt->harga, 0, ',', '.') ?>
                                                 </div>
-
+                                            </div>
                                             </div>
 
+                                            <!-- JUDUL PRODUK -->
                                             <h3><?= esc($pt->nama) ?></h3>
 
                                         </div>    
-                                    </div>
+                                        </div>
                                     <?php endforeach ?>
                                 </div>
                             </div>

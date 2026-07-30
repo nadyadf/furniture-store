@@ -54,28 +54,34 @@
 
       <?php foreach($produk as $p): ?>
 
-      <div class="col-6 col-md-4 col-lg-3">
+      <div class="col-6 col-md-4 col-lg-3 mb-3">
         <div class="product-card h-100" onclick="window.location.href='<?php echo site_url('produk/'.$p->url); ?>'">
 
-          <img src="<?= base_url('cdn/uploads/'.$p->gambar) ?>">
+          <!-- WRAPPER GAMBAR + HARGA + TOMBOL -->
+          <div class="product-img-wrapper">
+            <img src="<?= base_url('cdn/uploads/'.$p->gambar) ?>" alt="<?= esc($p->nama) ?>">
 
-          <div class="price">
+            <!-- BADGE HARGA -->
+            <div class="price">
+              <?php if($p->harga_coret > 0): ?>
+                <div class="price-old">
+                  Rp<?= number_format($p->harga_coret, 0, ',', '.') ?>
+                </div>
+              <?php endif; ?>
 
-            <?php if($p->harga_coret > 0): ?>
-            <div class="price-old">
-              Rp<?= number_format($p->harga_coret,0,',','.') ?>
+              <div class="price-new">
+                Rp<?= number_format($p->harga, 0, ',', '.') ?>
+              </div>
             </div>
-            <?php endif ?>
 
-            <div class="price-new">
-              Rp<?= number_format($p->harga,0,',','.') ?>
-            </div>
-
+            <!-- TOMBOL KERANJANG -->
+            <button class="add-to-cart-btn" onclick="event.stopPropagation(); addtocart(<?=$p->id?>)">
+              TAMBAH KE KERANJANG
+            </button>
           </div>
 
+          <!-- JUDUL PRODUK -->
           <h3><?= esc($p->nama) ?></h3>
-
-          <button class="add-to-cart-btn" onclick="event.stopPropagation(); addtocart(<?=$p->id?>)">TAMBAH KE KERANJANG</button>
 
         </div>
       </div>

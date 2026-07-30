@@ -30,7 +30,7 @@
 								<a class="nav-link dropdown-toggle py-1" role="button" data-bs-toggle="dropdown" aria-expanded="false">KATEGORI</a>
 								<ul class="dropdown-menu shadow">
 									<?php foreach ($kategori as $k): ?>
-										<li><a class="dropdown-item" href="katalog/<?= $k->url ?>"><?= esc($k->nama); ?></a></li>   
+										<li><a class="dropdown-item" href="<?=site_url('katalog/'. $k->url) ?>"><?= esc($k->nama)?> </a></li>   
 									<?php endforeach; ?>
 								</ul>
 							</li>
