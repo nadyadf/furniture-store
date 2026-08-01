@@ -1038,9 +1038,26 @@ body {
 
 .btn-login {
     background-color: #3E2723;
+    color: #FFFFFF !important; /* Warna teks putih */
     border: none;
     transition: background-color 0.2s ease-in-out;
 }
-.btn-login:hover {
-    background-color: #2C1A1D; /* Lebih gelap sedikit saat di-hover */
+
+/* Saat di-hover, diklik (:active), atau difokuskan */
+.btn-login:hover,
+.btn-login:focus,
+.btn-login:active,
+.btn-login:active:focus {
+    background-color: #2C1A1D !important;
+    color: #FFFFFF !important;
+    box-shadow: none; /* Hilangkan garis biru highlight Bootstrap */
+}
+
+/* Saat tombol sedang disabled/loading via AJAX */
+.btn-login:disabled,
+.btn-login[disabled] {
+    background-color: #5D4037 !important; /* Warna cokelat agak pudar */
+    color: #E0E0E0 !important;
+    opacity: 0.8;
+    cursor: not-allowed;
 }
