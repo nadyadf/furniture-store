@@ -1,6 +1,7 @@
 <?php 
 
-namespace App\Controllers;
+namespace App\Controllers\Client;
+use App\Controllers\BaseController;
 
 use CodeIgniter\Model;
 use Config\Database;

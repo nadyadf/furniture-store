@@ -1,6 +1,7 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Client;
+use App\Controllers\BaseController;
 
 class Produk extends BaseController {
   public function index($url=null){

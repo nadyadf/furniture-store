@@ -1,9 +1,10 @@
 <?php 
 
-namespace App\Controllers;
+namespace App\Controllers\Client;
 
 use CodeIgniter\Model;
 use Config\Database;
+use App\Controllers\BaseController;
 
 class Checkout extends BaseController {
 

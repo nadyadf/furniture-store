@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Client;
 
 use App\Controllers\BaseController;
 use Config\Database;

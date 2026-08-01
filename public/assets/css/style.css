@@ -1036,3 +1036,11 @@ body {
   color: white;
 }
 
+.btn-login {
+    background-color: #3E2723;
+    border: none;
+    transition: background-color 0.2s ease-in-out;
+}
+.btn-login:hover {
+    background-color: #2C1A1D; /* Lebih gelap sedikit saat di-hover */
+}
