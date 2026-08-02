@@ -1061,3 +1061,77 @@ body {
     opacity: 0.8;
     cursor: not-allowed;
 }
+
+
+/* Fix Layout Header & Sidebar Ready Bootstrap di BS5 */
+.wrapper {
+  min-height: 100vh;
+  position: relative;
+}
+
+.main-header {
+  background: #ffffff;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1001;
+  min-height: 55px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+}
+
+.logo-header {
+  float: left;
+  width: 250px;
+  height: 100%;
+  padding-left: 25px;
+  padding-right: 25px;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 250px;
+  margin-top: 55px;
+  display: block;
+  z-index: 1000;
+  background: #ffffff;
+  box-shadow: 2px 0 10px rgba(154, 161, 171, 0.15);
+}
+
+.main-panel {
+  position: relative;
+  width: calc(100% - 250px);
+  height: 100vh;
+  min-height: 100%;
+  float: right;
+  padding-top: 55px;
+}
+
+/* Response untuk layar HP / Tablet */
+@media screen and (max-width: 991px) {
+  .main-panel {
+    width: 100% !important;
+  }
+  .sidebar {
+    left: -250px;
+    transition: all 0.3s ease;
+  }
+  .nav-open .sidebar {
+    left: 0 !important;
+  }
+}
+
+/* Fix Dropdown User Profile agar tidak terpotong */
+.dropdown-user {
+  margin-top: 10px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  border: none;
+}

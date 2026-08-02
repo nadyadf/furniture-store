@@ -354,31 +354,32 @@ class GlobalData extends Model
         return $builder->countAllResults();
     }
 
-    public function cekLogin()
+    public function cekLogin(string $type = 'user'): int
     {
         $session = session();
 
         if ($session->has('usrid')) {
-            $user = $this->db->table('user_data')
+            $table = ($type === 'admin') ? 'admin' : 'user_data';
+
+            $userData = $this->db->table($table)
+                                ->where('id', $session->get('usrid'))
+                                ->get()
+                                ->getRow();
+
+            if ($userData && $userData->id > 0) {
+                // Update 'tgl' hanya jika bukan admin
+                if ($type !== 'admin') {
+                    $this->db->table($table)
                             ->where('id', $session->get('usrid'))
-                            ->get()
-                            ->getRow(); // bisa getRowArray() kalau mau array
+                            ->update(['tgl' => date('Y-m-d H:i:s')]);
+                }
 
-            if ($user && $user->id > 0) {
-                // update last login
-                $this->db->table('user_data')
-                        ->where('id', $session->get('usrid'))
-                        ->update(['tgl' => date('Y-m-d H:i:s')]);
-
-                return $session->get('usrid');
-            } else {
-                $session->destroy();
-                return redirect()->to('signin')->send();
-                exit;
+                return (int) $session->get('usrid');
             }
-        } else {
-            return 0;
         }
+
+        // Jika id tidak ada di tabel yang dicari (atau belum login), kembalikan 0
+        return 0;
     }
 
     public function getPromoAktif()
@@ -2456,6 +2457,211 @@ class GlobalData extends Model
                         ->limit($limit)
                         ->get()
                         ->getResult();
+    }
+
+    public function mainsite_url(string $url = ''): string
+    {
+        // ROOTPATH menunjuk ke root folder project (selevel app/, writable/, dll)
+        $lisensiPath = ROOTPATH . 'lisensi.json';
+        $domain = '';
+
+        if (file_exists($lisensiPath)) {
+            $jsonContent = file_get_contents($lisensiPath);
+            $lisensi = json_decode($jsonContent, true);
+
+            if (isset($lisensi['domain']) && ! empty($lisensi['domain'])) {
+                $domain = rtrim($lisensi['domain'], '/') . '/';
+            }
+        }
+
+        // Jika lisensi tidak ada atau domain kosong di JSON, gunakan base_url bawaan CI4
+        if (empty($domain)) {
+            $domain = rtrim(base_url(), '/') . '/';
+        }
+
+        return $domain . ltrim($url, '/');
+    }
+
+    public function getJmlPesanan(): int
+    {
+        return $this->db->table('transaksi')
+                        ->where('status <=', 1)
+                        ->countAllResults();
+    }
+
+    public function ubahTgl($format, $tanggal = "now", $bahasa = "id")
+    {
+        $en = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        $id = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jum'at", "Sabtu", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+        $lang = ${$bahasa} ?? $id;
+        return str_replace($en, $lang, date($format, strtotime($tanggal)));
+    }
+
+    public function getDashboardData()
+    {
+        $data = [
+            'jualtoday'   => 0, 'trxtoday'   => 0, 'omsettoday'   => 0,
+            'jualkemarin' => 0, 'trxkemarin' => 0, 'omsetkemarin' => 0,
+            'jualbulan'   => 0, 'trxbulan'   => 0, 'omsetbulan'   => 0,
+            'juallalu'    => 0, 'trxlalu'    => 0, 'omsetlalu'    => 0,
+            'pcsfix'      => [],
+            'notafix'     => [],
+            'graphtgl'    => [],
+            'topus_total'     => [],
+            'topus_usrid'     => [],
+            'topus_nama'      => [],
+            'topus_transaksi' => [],
+            'topus_jmlpcs'    => []
+        ];
+
+        $today   = date("Y-m-d");
+        $kemarin = date("Y-m-d", strtotime("-1 day"));
+        $sebulan = date("Ymd", strtotime("-20 day"));
+        $bulan   = date("Y-m-");
+        
+        // Penanganan bulan lalu agar format Y-m- presisi (termasuk ganti tahun)
+        $lalu    = date("Y-m-", strtotime("-1 month"));
+
+        // Generate 20 Hari Terakhir untuk Grafik
+        $graphtgl = [];
+        for ($i = 0; $i < 20; $i++) {
+            $day = 20 - $i;
+            $graphtgl[] = date("d-m", strtotime("-{$day} day"));
+        }
+
+        // 1. OLAH DATA TRANSAKSI & TRANSAKSI PRODUK
+        $trx = $this->db->table('transaksi')
+                        ->where('tgl >=', $lalu . "01")
+                        ->where('status >=', 1)
+                        ->get()
+                        ->getResult();
+
+        $pcs  = [];
+        $nota = [];
+
+        foreach ($trx as $r) {
+            $tglYm = $this->ubahTgl("Y-m-", $r->tgl);
+            $tglYmd = $this->ubahTgl("Ymd", $r->tgl);
+            $tgldm = $this->ubahTgl("d-m", $r->tgl);
+            $tglOnly = explode(" ", $r->tgl)[0];
+
+            // Hitung Jumlah Transaksi
+            if ($tglYm == $bulan) {
+                $data['trxbulan'] += 1;
+            } elseif ($tglYm == $lalu) {
+                $data['trxlalu'] += 1;
+            }
+
+            if ($tglOnly == $today) {
+                $data['trxtoday'] += 1;
+            } elseif ($tglOnly == $kemarin) {
+                $data['trxkemarin'] += 1;
+            }
+
+            // Hitung Produk Terjual per Transaksi
+            $trxProduk = $this->db->table('transaksi_produk')
+                                  ->where('idtransaksi', $r->id)
+                                  ->get()
+                                  ->getResult();
+
+            $jml = 0;
+            foreach ($trxProduk as $rs) {
+                if ($tglYm == $bulan) {
+                    $data['jualbulan'] += $rs->jumlah;
+                } elseif ($tglYm == $lalu) {
+                    $data['juallalu'] += $rs->jumlah;
+                }
+
+                if ($tglOnly == $today) {
+                    $data['jualtoday'] += $rs->jumlah;
+                } elseif ($tglOnly == $kemarin) {
+                    $data['jualkemarin'] += $rs->jumlah;
+                }
+
+                if ($tglYmd >= $sebulan) {
+                    $jml += $rs->jumlah;
+                }
+            }
+
+            // Data untuk Grafik
+            if ($tglYmd >= $sebulan) {
+                $pcs[$tgldm]  = ($pcs[$tgldm] ?? 0) + $jml;
+                $nota[$tgldm] = ($nota[$tgldm] ?? 0) + 1;
+            }
+        }
+
+        // Format data Grafik agar sesuai array tgl
+        foreach ($graphtgl as $gtgl) {
+            $data['pcsfix'][]  = $pcs[$gtgl] ?? 0;
+            $data['notafix'][] = $nota[$gtgl] ?? 0;
+            $data['graphtgl'][] = $gtgl;
+        }
+
+        // 2. OLAH DATA OMSET / PEMBAYARAN
+        $pembayaran = $this->db->table('pembayaran')
+                               ->where('tgl >=', $lalu . "01")
+                               ->where('status >=', 1)
+                               ->get()
+                               ->getResult();
+
+        foreach ($pembayaran as $r) {
+            $tglYm   = $this->ubahTgl("Y-m-", $r->tgl);
+            $tglOnly = explode(" ", $r->tgl)[0];
+            $netto   = $r->total - $r->kode_bayar;
+
+            if ($tglYm == $bulan) {
+                $data['omsetbulan'] += $netto;
+            } elseif ($tglYm == $lalu) {
+                $data['omsetlalu'] += $netto;
+            }
+
+            if ($tglOnly == $today) {
+                $data['omsettoday'] += $netto;
+            } elseif ($tglOnly == $kemarin) {
+                $data['omsetkemarin'] += $netto;
+            }
+        }
+
+        // 3. TOP USER
+        $topUsers = $this->db->table('pembayaran')
+                             ->select('SUM(total) AS total, SUM(kode_bayar) AS kode, usrid')
+                             ->like('tgl', $bulan)
+                             ->where('status >=', 1)
+                             ->groupBy('usrid')
+                             ->orderBy('total', 'DESC')
+                             ->get()
+                             ->getResult();
+
+        foreach ($topUsers as $r) {
+            // Hitung total transaksi per user
+            $totalTrx = $this->db->table('transaksi')
+                                 ->selectCount('id', 'total_data')
+                                 ->where('usrid', $r->usrid)
+                                 ->get()
+                                 ->getRow();
+            $total = $totalTrx->total_data ?? 0;
+
+            // Hitung total pcs per user
+            $totalPcs = $this->db->table('transaksi_produk')
+                                 ->selectSum('jumlah', 'jml')
+                                 ->where('usrid', $r->usrid)
+                                 ->get()
+                                 ->getRow();
+            $jml = $totalPcs->jml ?? 0;
+
+            // Profil User
+            $usr = $this->db->table('profil')->where('usrid', $r->usrid)->get()->getRow();
+            $usrnama = $usr->nama ?? "USER DIHAPUS";
+
+            $data['topus_total'][]     = $r->total;
+            $data['topus_usrid'][]     = $r->usrid;
+            $data['topus_nama'][]      = $usrnama;
+            $data['topus_transaksi'][] = $total;
+            $data['topus_jmlpcs'][]    = $jml;
+        }
+
+        return $data;
     }
 }
 
