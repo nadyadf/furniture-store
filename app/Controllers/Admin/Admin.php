@@ -15,11 +15,11 @@ class Admin extends AdminBaseController
         }
 
         $data = $this->data;
-        $usrid = session('usrid') ?? 0;
+        
         
         $data['menu']       = 1;
-        $data['mainsite']   = $this->func->mainsite_url();
-        $data['user']       = $this->func->getUser($usrid);
+        
+        // $data['user']       = $this->func->getUser($usrid);
         $data['jmlPesanan'] = $this->func->getJmlPesanan();
         $data['isLogin']    = $data['adminId'];
         $data['data']       = $this->func->getDashboardData();
@@ -88,5 +88,17 @@ class Admin extends AdminBaseController
     public function showNotFound()
     {
         return view('errors/html/error_404');
+    }
+
+    public function pesanan()
+    {
+        if ($this->data['adminId'] === 0) {
+            return redirect()->to(base_url('admin/login'));
+        }
+
+        $data         = $this->data;
+        $data['menu'] = 2; 
+
+        return view('admin/pesanan', $data);
     }
 }

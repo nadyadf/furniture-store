@@ -23,12 +23,14 @@ abstract class AdminBaseController extends Controller
         // Khusus Admin (Bisa ambil settingan dasar saja tanpa keranjang/kategori)
         $adminId = $this->func->cekLogin('admin');
         $set     = $this->func->globalset('semua');
+        $usrid = session('usrid') ?? 0;
         
 
         $this->data['set']       = $set;
         $this->data['isAdmin']   = ($adminId > 0);
         $this->data['adminId']   = $adminId;
-
+        $this->data['mainsite']   = $this->func->mainsite_url();
+        $this->data['admin']       = $this->func->getAdmin($adminId);
         $this->data['nama_app']   = 'Admin - ' . $set->nama;
         $this->data['jmlPesanan'] = $this->func->getJmlPesanan(); // Hanya contoh data yg relevan untuk Admin
     }

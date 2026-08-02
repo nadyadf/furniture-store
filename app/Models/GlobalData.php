@@ -2663,5 +2663,32 @@ class GlobalData extends Model
 
         return $data;
     }
+
+    public function getAdmin($adminId, $field = 'semua', $searchBy = 'id')
+    {
+        $admin = $this->db->table('admin')
+            ->where($searchBy, $adminId)
+            ->get(1)
+            ->getRow();
+
+        // Mengembalikan satu field saja
+        if ($field !== 'semua') {
+            return $admin->{$field} ?? '';
+        }
+
+        // Mengembalikan seluruh data admin
+        if ($admin) {
+            return $admin;
+        }
+
+        // Jika admin tidak ditemukan, buat object kosong sesuai struktur tabel 'admin'
+        $emptyAdmin = new \stdClass();
+
+        foreach ($this->db->getFieldData('admin') as $column) {
+            $emptyAdmin->{$column->name} = null;
+        }
+
+        return $emptyAdmin;
+    }
 }
 

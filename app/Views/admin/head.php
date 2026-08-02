@@ -208,7 +208,7 @@
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle profile-pic d-flex align-items-center gap-2" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
                 <img src="<?= base_url('cdn/assets/img/user.png') ?>" alt="user-img" width="36" class="rounded-circle">
-                <span class="fw-semibold text-dark"><?= $user->nama ?></span>
+                <span class="fw-semibold text-dark"><?= $admin->nama ?></span>
               </a>
               <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
                 <li>
@@ -233,7 +233,7 @@
       <div class="sidebar-wrapper">
         <ul class="nav">
           <li class="nav-item <?= (isset($menu) && $menu == 1) ? 'active' : '' ?>">
-            <a href="<?= site_url('ngadimin') ?>">
+            <a href="<?= site_url('admin') ?>">
               <i class="fas fa-tachometer-alt text-primary"></i>
               <p>Dashboard</p>
             </a>
@@ -241,7 +241,7 @@
           
           <li class="nav-title">DATA PESANAN</li>
           <li class="nav-item <?= (isset($menu) && $menu == 2) ? 'active' : '' ?>">
-            <a href="<?= site_url('ngadimin/pesanan') ?>" class="d-flex align-items-center justify-content-between">
+            <a href="<?= site_url('admin/pesanan') ?>" class="d-flex align-items-center justify-content-between">
               <div class="d-flex align-items-center">
                 <i class="fas fa-dolly-flatbed text-success"></i>
                 <p>Pesanan</p>
@@ -254,7 +254,7 @@
           
           <li class="nav-title">MARKETING</li>
           <li class="nav-item <?= (isset($menu) && $menu == 5) ? 'active' : '' ?>">
-            <a href="<?= site_url('ngadimin/slider') ?>">
+            <a href="<?= site_url('admin/slider') ?>">
               <i class="fas fa-images text-info"></i>
               <p>Home Slider</p>
             </a>
@@ -262,19 +262,19 @@
 
           <li class="nav-title">LAPORAN</li>
           <li class="nav-item <?= (isset($menu) && $menu == 14) ? 'active' : '' ?>">
-            <a href="<?= site_url('ngadimin/laporantransaksi') ?>">
+            <a href="<?= site_url('admin/laporantransaksi') ?>">
               <i class="fas fa-chart-area text-primary"></i>
               <p>Transaksi</p>
             </a>
           </li>
           <li class="nav-item <?= (isset($menu) && $menu == 15) ? 'active' : '' ?>">
-            <a href="<?= site_url('ngadimin/laporanuser') ?>">
+            <a href="<?= site_url('admin/laporanuser') ?>">
               <i class="fas fa-user-clock text-primary"></i>
               <p>Transaksi User</p>
             </a>
           </li>
           <li class="nav-item <?= (isset($menu) && $menu == 19) ? 'active' : '' ?>">
-            <a href="<?= site_url('ngadimin/laporanproduk') ?>">
+            <a href="<?= site_url('admin/laporanproduk') ?>">
               <i class="fas fa-gifts text-primary"></i>
               <p>Penjualan Produk</p>
             </a>
@@ -282,13 +282,13 @@
 
           <li class="nav-title">DATA PRODUK</li>
           <li class="nav-item <?= (isset($menu) && $menu == 6) ? 'active' : '' ?>">
-            <a href="<?= site_url('ngadimin/produk') ?>">
+            <a href="<?= site_url('admin/produk') ?>">
               <i class="fas fa-boxes text-success"></i>
               <p>Daftar Produk</p>
             </a>
           </li>
           <li class="nav-item <?= (isset($menu) && $menu == 7) ? 'active' : '' ?>">
-            <a href="<?= site_url('ngadimin/kategori') ?>">
+            <a href="<?= site_url('admin/kategori') ?>">
               <i class="fas fa-clipboard-list text-primary"></i>
               <p>Kategori Produk</p>
             </a>
@@ -296,7 +296,7 @@
 
           <li class="nav-title">DATA USER</li>
           <li class="nav-item <?= (isset($menu) && $menu == 10) ? 'active' : '' ?>">
-            <a href="<?= site_url('ngadimin/usermanager') ?>">
+            <a href="<?= site_url('admin/usermanager') ?>">
               <i class="fas fa-users text-info"></i>
               <p>User</p>
             </a>
@@ -310,7 +310,7 @@
             </a>
           </li>
           <li class="nav-item <?= (isset($menu) && $menu == 20) ? 'active' : '' ?>">
-            <a href="<?= site_url('ngadimin/paketkurir') ?>">
+            <a href="<?= site_url('admin/paketkurir') ?>">
               <i class="fas fa-shipping-fast text-success"></i>
               <p>Custom Kurir</p>
             </a>
@@ -321,7 +321,7 @@
           if ($session->get('level') == 2) { 
           ?>
             <li class="nav-item <?= (isset($menu) && $menu == 12) ? 'active' : '' ?>">
-              <a href="<?= site_url('ngadimin/pengaturan') ?>">
+              <a href="<?= site_url('admin/pengaturan') ?>">
                 <i class="fas fa-cogs text-primary"></i>
                 <p>Pengaturan</p>
               </a>
