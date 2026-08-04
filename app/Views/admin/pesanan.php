@@ -106,7 +106,7 @@
     loadPesanan('bayar', 1);
 
     // 3. Event Handling Klik Tab Status Pesanan
-    $(".nav-link").on('click', function(e){
+    $("#pesananTab .nav-link").on('click', function(e){
       e.preventDefault();
       
       // Ubah tampilan Active Tab
