@@ -188,45 +188,50 @@
 <body>
   <div class="wrapper">
     <div class="main-header">
-      <div class="logo-header">
-        <a href="<?= site_url() ?>" class="logo">
-          <img src="<?= base_url("cdn/assets/img/" . $set->logo) ?>" style="height: 45px;" />
-        </a>
-        <button class="navbar-toggler sidenav-toggler ms-auto d-lg-none" type="button">
-          <i class="fa-solid fa-bars"></i>
-        </button>
-      </div>
-      
-      <nav class="navbar navbar-header navbar-expand-lg">
-        <div class="container-fluid">
-          <ul class="navbar-nav topbar-nav ms-auto align-items-center">
-            <li class="nav-item me-3">
-              <a class="nav-link text-secondary" href="<?= $mainsite ?>" target="_blank">
-                <i class="fas fa-globe-asia me-1"></i> View Site
-              </a>
-            </li>
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle profile-pic d-flex align-items-center gap-2" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
-                <img src="<?= base_url('cdn/assets/img/user.png') ?>" alt="user-img" width="36" class="rounded-circle">
-                <span class="fw-semibold text-dark"><?= $admin->nama ?></span>
-              </a>
-              <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
-                <li>
-                  <a class="dropdown-item" href="javascript:void(0)" onclick="bootstrap.Modal.getOrCreateInstance('#modalgantipass').show();">
-                    <i class="fas fa-unlock text-warning me-2"></i> Ganti Password
-                  </a>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
-                  <a class="dropdown-item text-danger" href="javascript:void(0)" onclick="logout()">
-                    <i class="fas fa-power-off text-danger me-2"></i> Logout
-                  </a>
-                </li>
-              </ul>
-            </li>
-          </ul>
+      <div class="logo-header d-flex align-items-center justify-content-between px-3" style="width: 100%;">
+
+        <!-- Bagian Kiri: Hamburger + Logo -->
+        <div class="d-flex align-items-center gap-3 flex-shrink-0">
+          <button class="navbar-toggler sidenav-toggler p-0 border-0 bg-transparent d-lg-none" type="button">
+            <i class="fa-solid fa-bars fs-4 text-dark"></i>
+          </button>
+          
+          <a href="<?= site_url() ?>" class="logo flex-shrink-0">
+            <!-- Tinggi dikembalikan ke 45px dan object-fit contain agar proporsional -->
+            <img src="<?= base_url("cdn/assets/img/" . $set->logo) ?>" style="height: 45px; max-width: 180px; object-fit: contain;" alt="Logo" />
+          </a>
         </div>
-      </nav>
+
+        <!-- Bagian Kanan: Ikon Globe + Profil (Dibuat lebih lega dengan gap-3) -->
+        <ul class="navbar-nav topbar-nav d-flex flex-row align-items-center gap-3 m-0 p-0 flex-shrink-0">
+          <li class="nav-item">
+            <a class="nav-link text-secondary p-0" href="<?= $mainsite ?>" target="_blank" title="View Site">
+              <i class="fas fa-globe-asia fs-5"></i>
+            </a>
+          </li>
+          
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle profile-pic p-0 d-flex align-items-center" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
+              <!-- Ukuran profil dikembalikan ke 36px agar nyaman di-klik -->
+              <img src="<?= base_url('cdn/assets/img/user.png') ?>" alt="user-img" width="36" height="36" class="rounded-circle border">
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-3">
+              <li>
+                <a class="dropdown-item" href="javascript:void(0)" onclick="bootstrap.Modal.getOrCreateInstance('#modalgantipass').show();">
+                  <i class="fas fa-unlock text-warning me-2"></i> Ganti Password
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item text-danger" href="javascript:void(0)" onclick="logout()">
+                  <i class="fas fa-power-off text-danger me-2"></i> Logout
+                </a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+
+      </div>
     </div>
 
     <div class="sidebar" id="sidebar">
