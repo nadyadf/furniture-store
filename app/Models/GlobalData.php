@@ -1094,24 +1094,15 @@ class GlobalData extends Model
 
     public function getAlamatById(int $id): ?object
     {
-        $session = session();
-
-        $builder = $this->db->table('alamat a')
+        // Cukup query berdasarkan ID alamat karena ID sudah Primary Key (Unik)
+        return $this->db->table('alamat a')
             ->select("
                 a.*,
                 kec.nama AS nama_kecamatan,
                 CONCAT(kab.tipe, ' ', kab.nama) AS nama_kabupaten
             ")
-            ->join('kec', 'kec.id = a.idkec')
-            ->join('kab', 'kab.id = kec.idkab');
-
-        if ($session->has('usrid')) {
-            $builder->where('a.usrid', $session->get('usrid'));
-        } else {
-            $builder->where('a.usrid_temp', $session->get('usrid_temp'));
-        }
-
-        return $builder
+            ->join('kec', 'kec.id = a.idkec', 'left')
+            ->join('kab', 'kab.id = kec.idkab', 'left')
             ->where('a.id', $id)
             ->get()
             ->getRow();
@@ -2690,5 +2681,199 @@ class GlobalData extends Model
 
         return $emptyAdmin;
     }
+
+    public function getAdminUnpaidPayments(int $page = 1, string $cari = '', int $perpage = 10): array
+{
+    $db  = \Config\Database::connect();
+    $set = $this->globalset("semua"); // Mengembalikan Object
+
+    $builder = $db->table('pembayaran');
+
+    // Filter Pencarian
+    if (!empty($cari)) {
+        $userIDs = $db->table('profil')
+            ->select('usrid')
+            ->like('nama', $cari)
+            ->orLike('nohp', $cari)
+            ->get()->getResultArray();
+        $arrUsrid = array_filter(array_column($userIDs, 'usrid'));
+
+        $alamatIDs = $db->table('alamat')
+            ->select('usrid, usrid_temp')
+            ->like('nama', $cari)
+            ->orLike('alamat', $cari)
+            ->orLike('nohp', $cari)
+            ->get()->getResultArray();
+        
+        $arrAlamatUsrid     = array_filter(array_column($alamatIDs, 'usrid'));
+        $arrAlamatUsridTemp = array_filter(array_column($alamatIDs, 'usrid_temp'));
+
+        $mergedUsrid     = array_unique(array_merge($arrUsrid, $arrAlamatUsrid));
+        $mergedUsridTemp = array_unique($arrAlamatUsridTemp);
+
+        $builder->groupStart()
+            ->like('pembayaran.invoice', $cari)
+            ->orLike('pembayaran.total', $cari)
+            ->orLike('pembayaran.kode_bayar', $cari);
+
+        if (!empty($mergedUsrid)) {
+            $builder->orWhereIn('pembayaran.usrid', $mergedUsrid);
+        }
+        if (!empty($mergedUsridTemp)) {
+            $builder->orWhereIn('pembayaran.usrid_temp', $mergedUsridTemp);
+        }
+        $builder->groupEnd();
+    }
+
+    $builder->where('pembayaran.status', 0);
+
+    // Hitung Total Rows
+    $totalRows = $builder->countAllResults(false);
+
+    // Ambil Data Pembayaran (Object)
+    $offset   = ($page - 1) * $perpage;
+    $payments = $builder->orderBy('pembayaran.id', 'DESC')
+                        ->limit($perpage, $offset)
+                        ->get()
+                        ->getResult(); // <-- Ambil sebagai Object
+
+    // Set Pager
+    $pager = \Config\Services::pager();
+    $this->pager = $pager->makeLinks($page, $perpage, $totalRows, 'bootstrap_full');
+
+    if (empty($payments)) {
+        return [];
+    }
+
+    $resultData = [];
+    foreach ($payments as $r) {
+        // 1. Handling Transaksi (Mengembalikan Array Result -> Ambil indeks ke-0)
+        $trxList = $this->getTransaksiByPaymentId($r->id);
+        $trx     = $trxList[0] ?? (object) []; // Object Transaksi Pertamaecho "<pre>";
+
+
+
+        // 2. Konfirmasi Transfer (Object)
+        $konfirmasi = $db->table('konfirmasi')
+            ->where('idbayar', $r->id)
+            ->get()
+            ->getRow(); // <-- Ambil sebagai Object
+
+        $bukti = $konfirmasi->bukti ?? '';
+        $tglFormatted = date('d/m/Y H:i', strtotime($r->tgl));
+        if ($bukti) {
+            $tglFormatted .= "<br/><a href='javascript:void(0)' onclick='bukti(\"" . base_url("konfirmasi/" . $bukti) . "\")'>&raquo; Lihat Bukti Transfer</a>";
+        }
+
+        // 3. Profil & Alamat (Object)
+        $isMember = ($r->usrid > 0);
+        $profil   = $isMember 
+            ? $this->getProfil($r->usrid, "semua", "usrid") 
+            : $this->getUserTemp($r->usrid_temp);
+
+        // 1. Ambil ID Alamat dari $trx dan pastikan berbentuk angka (int)
+$idAlamat = (int) ($trx->alamat ?? 0);
+
+// 2. Query ke fungsi getAlamatById
+$alamat = ($idAlamat > 0) ? $this->getAlamatById($idAlamat) : null;
+
+// 3. Jika $alamat masih null (misal karena alamat non-member ada di tabel usertemp / alamat_temp)
+// Ambil profil pembeli
+$isMember = ((int) $r->usrid > 0);
+$profil   = $isMember 
+    ? $this->getProfil($r->usrid, "semua", "usrid") 
+    : $this->getUserTemp($r->usrid_temp);
+
+// 4. Ambil properti dari object $alamat (gunakan nama kolom dari tabel alamat)
+$namaProfil   = esc($profil->nama ?? 'Tamu');
+$namaAlamat   = esc($alamat->nama ?? '-');
+$nohpAlamat   = esc($alamat->nohp ?? $alamat->no_hp ?? '-');
+$detailAlamat = esc($alamat->alamat ?? '-');
+
+// HTML Tampilan Pembeli
+if ($isMember) {
+    $pembeliHtml = "<span class='text-primary'>[" . $namaProfil . "]</span>";
+} else {
+    $pembeliHtml = "<span class='text-danger'>[" . $namaProfil . "] <i class='badge badge-danger p-lr-8 p-tb-3'>non member</i></span>";
+}
+$pembeliHtml .= "<br/><small>" . $namaAlamat . " (" . $nohpAlamat . ")</small>";
+$pembeliHtml .= "<br/><small class='m-t--4 dis-block'><i>" . $detailAlamat . "</i></small>";
+
+        // 4. Kurir (Object)
+        $namaKurir = !empty($trx->kurir) ? strtoupper($this->getKurir($trx->kurir, "nama")) : '-';
+        $namaPaket = !empty($trx->paket) ? strtoupper($this->getPaket($trx->paket, "nama")) : '-';
+        $kurirHtml = $namaKurir . "<br/><small class='text-primary'>" . $namaPaket . "</small>";
+
+        // 5. Metode Bayar
+        $metodeList  = [1 => "Bayar Ditempat (COD)", 2 => "Transfer"];
+        $metodeLabel = $metodeList[(int)$r->metode_bayar] ?? "Lainnya";
+
+        // 6. Gudang (Object)
+        $gudangId = $trx->gudang ?? 0;
+        if ($gudangId > 0) {
+            $gudang     = $this->getGudang($gudangId, "semua");
+            $kota       = $this->getKabupaten($gudang->idkab ?? 0);
+            $namaKota   = trim(($kota->tipe ?? '') . " " . ($kota->nama ?? ''));
+            $namaGudang = ($gudang->nama ?? '') . " - " . $namaKota;
+        } else {
+            $kota       = $this->getKabupaten($set->kota ?? 0);
+            $namaKota   = trim(($kota->tipe ?? '') . " " . ($kota->nama ?? ''));
+            $namaGudang = "PUSAT - " . $namaKota;
+        }
+
+        // Return Object Result
+        $resultData[] = (object) [
+            'id'           => $r->id,
+            'invoice'      => $r->invoice,
+            'total'        => $r->total,
+            'kodebayar'    => $r->kode_bayar ?? 0,
+            'kode_bayar'   => $r->kode_bayar ?? 0,
+            'biaya_cod'    => $r->biaya_cod ?? 0,
+            'metode_bayar' => $r->metode_bayar,
+            'metode_nama'  => $metodeLabel,
+            'tgl'          => $r->tgl,
+            'tgl_format'   => $tglFormatted,
+            'bukti'        => $bukti,
+            'trxid'        => $trx->id ?? 0,
+            'orderid'      => $trx->orderid ?? '-',
+            'pembeli_html' => $pembeliHtml,
+            'kurir_html'   => $kurirHtml,
+            'namagudang'   => $namaGudang,
+
+            // Raw data utuh berbentuk Object
+            'raw_payment'  => $r,
+            'raw_trx'      => $trx
+        ];
+    }
+
+    return $resultData;
+}
+
+/**
+ * Helper Private: Meratakan segala tipe data (Object, Array 2D, Array 1D, NULL) menjadi Array 1D yang aman
+ */
+/**
+ * Helper Private: Meratakan segala tipe data (Object, Array 2D, Array 1D, NULL) menjadi Array 1D yang aman.
+ * Jika masukan berupa Array 2D (seperti getTransaksiByPaymentId), otomatis mengambil baris pertama ([0]).
+ */
+private function toArray($data): array
+{
+    if (empty($data)) {
+        return [];
+    }
+
+    // Jika data berupa Object, ubah ke Array
+    if (is_object($data)) {
+        $data = (array) $data;
+    }
+
+    // Jika data berupa Array 2D / list berindeks [0 => ...], ambil elemen pertamanya
+    if (is_array($data) && isset($data[0])) {
+        $first = $data[0];
+        return is_object($first) ? (array) $first : (array) $first;
+    }
+
+    return is_array($data) ? $data : [];
+}
 }
 

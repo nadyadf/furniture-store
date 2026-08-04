@@ -74,6 +74,7 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin'], static functio
   $routes->get('login', 'Admin::login');
   $routes->get('pesanan', 'Admin::pesanan');
   $routes->post('auth', 'Admin::auth');
+  $routes->post('api/pesanan', 'Api::pesanan');
 });
 
 
