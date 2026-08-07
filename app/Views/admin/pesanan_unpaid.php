@@ -17,7 +17,7 @@
           <tr>
             <!-- Tanggal & Indicator Status -->
             <td class="text-center">
-              <i class="fas fa-circle text-danger me-1"></i>
+              <i class="fas fa-circle text-danger me-1 mb-1"></i>
               <br/>
               <small><?= $unp->tgl_format ?></small>
             </td>
@@ -136,8 +136,9 @@
       },
       buttonsStyling: false
     }).then((result) => {
+      loadingDulu();
       if (result.isConfirmed) {
-        $.post("<?= site_url("api/updatepesanan") ?>", {
+        $.post("<?= site_url("admin/api/updatepesanan") ?>", {
           "id": id,
           "statusbayar": 1,
           "<?= csrf_token() ?>": "<?= csrf_hash() ?>"
@@ -172,8 +173,9 @@
       },
       buttonsStyling: false
     }).then((result) => {
+      loadingDulu();
       if (result.isConfirmed) {
-        $.post("<?= site_url('api/batalkanpesanan') ?>", {
+        $.post("<?= site_url('admin/api/batalkanpesanan') ?>", {
           "id": id,
           "<?= csrf_token() ?>": "<?= csrf_hash() ?>"
         }, function(e) {

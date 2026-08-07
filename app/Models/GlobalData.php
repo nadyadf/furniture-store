@@ -1950,109 +1950,112 @@ class GlobalData extends Model
         return $emptyPayment;
     }
 
-    public function getTransaksiById(int $id): array
-    {
-        $builder = $this->db->table('transaksi');
+    public function getTransaksiById(int $id, bool $isAdmin = false): array
+{
+    $builder = $this->db->table('transaksi');
 
-        // Filter berdasarkan user session yang sedang aktif
+    // Filter user hanya jika BUKAN diakses oleh Admin
+    if (!$isAdmin) {
         if (session()->has('usrid')) {
             $builder->where('usrid', session()->get('usrid'));
-        } else {
+        } elseif (session()->has('usrid_temp')) {
             $builder->where('usrid_temp', session()->get('usrid_temp'));
         }
-
-        // Ambil semua transaksi yang cocok (mengembalikan array of objects)
-        $transactions = $builder->where('id', $id)
-                                ->get()
-                                ->getResult();
-
-        if (empty($transactions)) {
-            return [];
-        }
-
-        // Lakukan perulangan untuk melengkapi data setiap transaksi
-        foreach ($transactions as &$transaction) {
-
-            // 1. Ambil Data Pembayaran
-            $transaction->pembayaran = $this->db->table('pembayaran')
-                ->where('id', $transaction->idbayar)
-                ->get()
-                ->getRow();
-
-            // 2. Ambil Data Alamat Lengkap (+ Kec, Kab, & Prov)
-            $transaction->alamat = $this->db->table('alamat a')
-                ->select("a.*, kec.nama AS nama_kecamatan, k.nama AS nama_kabupaten, k.tipe AS tipe_kabupaten, p.nama AS nama_provinsi")
-                ->join('kec', 'kec.id = a.idkec', 'left')
-                ->join('kab k', 'k.id = kec.idkab', 'left')
-                ->join('prov p', 'p.id = k.idprov', 'left')
-                ->where('a.id', $transaction->alamat)
-                ->get()
-                ->getRow();
-
-            // 3. Ambil Data User (Lokal/Registered vs Temp/Guest)
-            if (!empty($transaction->usrid) && $transaction->usrid != 0) {
-                $transaction->user = $this->db->table('user_data')
-                    ->where('id', $transaction->usrid)
-                    ->get()
-                    ->getRow();
-            } elseif (!empty($transaction->usrid_temp) && $transaction->usrid_temp != 0) {
-                $transaction->user = $this->db->table('user_temp')
-                    ->where('id', $transaction->usrid_temp)
-                    ->get()
-                    ->getRow();
-            } else {
-                $transaction->user = null;
-            }
-
-            // 4. Ambil Seluruh Data Gudang beserta Kota Asal
-            $gudang = $this->db->table('gudang g')
-                ->select("g.*, CONCAT(k.tipe, ' ', k.nama) AS kota_asal, k.nama AS nama_kabupaten, k.tipe AS tipe_kabupaten")
-                ->join('kab k', 'k.id = g.idkab', 'left')
-                ->where('g.id', $transaction->gudang)
-                ->get()
-                ->getRow();
-
-            $transaction->gudang_detail = $gudang; 
-            $transaction->kota_asal     = $gudang ? $gudang->kota_asal : '-';
-
-            // 5. Cari Nama Kurir
-            $kurir = $this->db->table('kurir')
-                ->select('nama')
-                ->where('id', $transaction->kurir)
-                ->get()
-                ->getRow();
-
-            $transaction->nama_kurir = $kurir ? $kurir->nama : '-';
-
-            // 6. Cari Nama Paket
-            $paket = $this->db->table('paket')
-                ->select('nama')
-                ->where('id', $transaction->paket)
-                ->get()
-                ->getRow();
-
-            $transaction->nama_paket = $paket ? $paket->nama : '-';
-
-            // 7. Ambil Detail Produk Terkait
-            $transaction->produk = $this->db->table('transaksi_produk tp')
-                ->select("
-                    tp.*,
-                    p.*,
-                    pv.harga AS harga_variasi,
-                    vw.nama AS nama_warna,
-                    u.nama AS gambar
-                ")
-                ->join('produk p', 'p.id = tp.idproduk', 'left')
-                ->join('produk_variasi pv', 'pv.id = tp.variasi', 'left')
-                ->join('variasi_warna vw', 'vw.id = pv.idwarna', 'left')
-                ->join('upload u', "u.id_produk_variasi = pv.id", 'left')
-                ->where('tp.idtransaksi', $transaction->id)
-                ->get()
-                ->getResult();
-        }
-
-        return $transactions;
     }
+
+    // Ambil data transaksi berdasarkan ID
+    $transactions = $builder->where('id', $id)
+                            ->get()
+                            ->getResult();
+
+    if (empty($transactions)) {
+        return [];
+    }
+
+    // Perulangan untuk melengkapi data setiap transaksi
+    foreach ($transactions as &$transaction) {
+
+        // 1. Ambil Data Pembayaran
+        $transaction->pembayaran = $this->db->table('pembayaran')
+            ->where('id', $transaction->idbayar)
+            ->get()
+            ->getRow();
+
+        // 2. Ambil Data Alamat Lengkap (+ Kec, Kab, & Prov)
+        $transaction->alamat = $this->db->table('alamat a')
+            ->select("a.*, kec.nama AS nama_kecamatan, k.nama AS nama_kabupaten, k.tipe AS tipe_kabupaten, p.nama AS nama_provinsi")
+            ->join('kec', 'kec.id = a.idkec', 'left')
+            ->join('kab k', 'k.id = kec.idkab', 'left')
+            ->join('prov p', 'p.id = k.idprov', 'left')
+            ->where('a.id', $transaction->alamat)
+            ->get()
+            ->getRow();
+
+        // 3. Ambil Data User (Registered vs Guest/Temp)
+        if (!empty($transaction->usrid) && $transaction->usrid != 0) {
+            $transaction->user = $this->db->table('user_data')
+                ->where('id', $transaction->usrid)
+                ->get()
+                ->getRow();
+        } elseif (!empty($transaction->usrid_temp) && $transaction->usrid_temp != 0) {
+            $transaction->user = $this->db->table('user_temp')
+                ->where('id', $transaction->usrid_temp)
+                ->get()
+                ->getRow();
+        } else {
+            $transaction->user = null;
+        }
+
+        // 4. Ambil Seluruh Data Gudang beserta Kota Asal
+        $gudang = $this->db->table('gudang g')
+            ->select("g.*, CONCAT(k.tipe, ' ', k.nama) AS kota_asal, k.nama AS nama_kabupaten, k.tipe AS tipe_kabupaten")
+            ->join('kab k', 'k.id = g.idkab', 'left')
+            ->where('g.id', $transaction->gudang)
+            ->get()
+            ->getRow();
+
+        $transaction->gudang_detail = $gudang; 
+        $transaction->kota_asal     = $gudang ? $gudang->kota_asal : '-';
+
+        // 5. Cari Nama Kurir
+        $kurir = $this->db->table('kurir')
+            ->select('nama, rajaongkir')
+            ->where('id', $transaction->kurir)
+            ->get()
+            ->getRow();
+
+        $transaction->nama_kurir = $kurir ? $kurir->nama : '-';
+        $transaction->kurir_rajaongkir = $kurir ? $kurir->rajaongkir : '-';
+
+        // 6. Cari Nama Paket
+        $paket = $this->db->table('paket')
+            ->select('nama')
+            ->where('id', $transaction->paket)
+            ->get()
+            ->getRow();
+
+        $transaction->nama_paket = $paket ? $paket->nama : '-';
+
+        // 7. Ambil Detail Produk Terkait
+        $transaction->produk = $this->db->table('transaksi_produk tp')
+            ->select("
+                tp.*,
+                p.*,
+                pv.harga AS harga_variasi,
+                vw.nama AS nama_warna,
+                u.nama AS gambar
+            ")
+            ->join('produk p', 'p.id = tp.idproduk', 'left')
+            ->join('produk_variasi pv', 'pv.id = tp.variasi', 'left')
+            ->join('variasi_warna vw', 'vw.id = pv.idwarna', 'left')
+            ->join('upload u', "u.id_produk_variasi = pv.id", 'left')
+            ->where('tp.idtransaksi', $transaction->id)
+            ->get()
+            ->getResult();
+    }
+
+    return $transactions;
+}
 
     public function getTransaksiByPaymentId(int $paymentId): array
     {
@@ -2683,197 +2686,696 @@ class GlobalData extends Model
     }
 
     public function getAdminUnpaidPayments(int $page = 1, string $cari = '', int $perpage = 10): array
-{
-    $db  = \Config\Database::connect();
-    $set = $this->globalset("semua"); // Mengembalikan Object
+    {
+        $db  = \Config\Database::connect();
+        $set = $this->globalset("semua"); // Mengembalikan Object
 
-    $builder = $db->table('pembayaran');
+        $builder = $db->table('pembayaran');
 
-    // Filter Pencarian
-    if (!empty($cari)) {
-        $userIDs = $db->table('profil')
-            ->select('usrid')
-            ->like('nama', $cari)
-            ->orLike('nohp', $cari)
-            ->get()->getResultArray();
-        $arrUsrid = array_filter(array_column($userIDs, 'usrid'));
+        // Filter Pencarian
+        if (!empty($cari)) {
+            $userIDs = $db->table('profil')
+                ->select('usrid')
+                ->like('nama', $cari)
+                ->orLike('no_hp', $cari)
+                ->get()->getResultArray();
+            $arrUsrid = array_filter(array_column($userIDs, 'usrid'));
 
-        $alamatIDs = $db->table('alamat')
-            ->select('usrid, usrid_temp')
-            ->like('nama', $cari)
-            ->orLike('alamat', $cari)
-            ->orLike('nohp', $cari)
-            ->get()->getResultArray();
-        
-        $arrAlamatUsrid     = array_filter(array_column($alamatIDs, 'usrid'));
-        $arrAlamatUsridTemp = array_filter(array_column($alamatIDs, 'usrid_temp'));
+            $alamatIDs = $db->table('alamat')
+                ->select('usrid, usrid_temp')
+                ->like('nama', $cari)
+                ->orLike('alamat', $cari)
+                ->orLike('no_hp', $cari)
+                ->get()->getResultArray();
+            
+            $arrAlamatUsrid     = array_filter(array_column($alamatIDs, 'usrid'));
+            $arrAlamatUsridTemp = array_filter(array_column($alamatIDs, 'usrid_temp'));
 
-        $mergedUsrid     = array_unique(array_merge($arrUsrid, $arrAlamatUsrid));
-        $mergedUsridTemp = array_unique($arrAlamatUsridTemp);
+            $mergedUsrid     = array_unique(array_merge($arrUsrid, $arrAlamatUsrid));
+            $mergedUsridTemp = array_unique($arrAlamatUsridTemp);
 
-        $builder->groupStart()
-            ->like('pembayaran.invoice', $cari)
-            ->orLike('pembayaran.total', $cari)
-            ->orLike('pembayaran.kode_bayar', $cari);
+            $builder->groupStart()
+                ->like('pembayaran.invoice', $cari)
+                ->orLike('pembayaran.total', $cari)
+                ->orLike('pembayaran.kode_bayar', $cari);
 
-        if (!empty($mergedUsrid)) {
-            $builder->orWhereIn('pembayaran.usrid', $mergedUsrid);
+            if (!empty($mergedUsrid)) {
+                $builder->orWhereIn('pembayaran.usrid', $mergedUsrid);
+            }
+            if (!empty($mergedUsridTemp)) {
+                $builder->orWhereIn('pembayaran.usrid_temp', $mergedUsridTemp);
+            }
+            $builder->groupEnd();
         }
-        if (!empty($mergedUsridTemp)) {
-            $builder->orWhereIn('pembayaran.usrid_temp', $mergedUsridTemp);
+
+        $builder->where('pembayaran.status', 0);
+
+        // Hitung Total Rows
+        $totalRows = $builder->countAllResults(false);
+
+        // Ambil Data Pembayaran (Object)
+        $offset   = ($page - 1) * $perpage;
+        $payments = $builder->orderBy('pembayaran.id', 'DESC')
+                            ->limit($perpage, $offset)
+                            ->get()
+                            ->getResult(); // <-- Ambil sebagai Object
+
+        // Set Pager
+        $pager = \Config\Services::pager();
+        $this->pager = $pager->makeLinks($page, $perpage, $totalRows, 'bootstrap_full');
+
+        if (empty($payments)) {
+            return [];
         }
-        $builder->groupEnd();
+
+        $resultData = [];
+        foreach ($payments as $r) {
+            // 1. Handling Transaksi (Mengembalikan Array Result -> Ambil indeks ke-0)
+            $trxList = $this->getTransaksiByPaymentId($r->id);
+            $trx     = $trxList[0] ?? (object) []; // Object Transaksi Pertamaecho "<pre>";
+
+
+
+            // 2. Konfirmasi Transfer (Object)
+            $konfirmasi = $db->table('konfirmasi')
+                ->where('idbayar', $r->id)
+                ->get()
+                ->getRow(); // <-- Ambil sebagai Object
+
+            $bukti = $konfirmasi->bukti ?? '';
+            $tglFormatted = date('d/m/Y H:i', strtotime($r->tgl));
+            if ($bukti) {
+                $tglFormatted .= "<br/><a href='javascript:void(0)' onclick='bukti(\"" . base_url("konfirmasi/" . $bukti) . "\")'>&raquo; Lihat Bukti Transfer</a>";
+            }
+
+            // 3. Profil & Alamat (Object)
+            $isMember = ($r->usrid > 0);
+            $profil   = $isMember 
+                ? $this->getProfil($r->usrid, "semua", "usrid") 
+                : $this->getUserTemp($r->usrid_temp);
+
+            // 1. Ambil ID Alamat dari $trx dan pastikan berbentuk angka (int)
+            $idAlamat = (int) ($trx->alamat ?? 0);
+
+            // 2. Query ke fungsi getAlamatById
+            $alamat = ($idAlamat > 0) ? $this->getAlamatById($idAlamat) : null;
+
+            // 3. Jika $alamat masih null (misal karena alamat non-member ada di tabel usertemp / alamat_temp)
+            // Ambil profil pembeli
+            $isMember = ((int) $r->usrid > 0);
+            $profil   = $isMember 
+                ? $this->getProfil($r->usrid, "semua", "usrid") 
+                : $this->getUserTemp($r->usrid_temp);
+
+            // 4. Ambil properti dari object $alamat (gunakan nama kolom dari tabel alamat)
+            $namaProfil   = esc($profil->nama ?? 'Tamu');
+            $namaAlamat   = esc($alamat->nama ?? '-');
+            $nohpAlamat   = esc($alamat->no_hp ?? '-');
+            $detailAlamat = esc($alamat->alamat ?? '-');
+
+            // HTML Tampilan Pembeli
+            if ($isMember) {
+                $pembeliHtml = "<span class='text-primary'>[" . $namaProfil . "]</span>";
+            } else {
+                $pembeliHtml = "<span class='text-danger'>[" . $namaProfil . "] <span class='badge bg-danger px-2 py-1 my-1'>non member</span></span>";
+            }
+            $pembeliHtml .= "<br/><small>" . $namaAlamat . " (" . $nohpAlamat . ")</small>";
+            $pembeliHtml .= "<br/><small class='m-t--4 dis-block'><i>" . $detailAlamat . "</i></small>";
+
+            // 4. Kurir (Object)
+            $namaKurir = !empty($trx->kurir) ? strtoupper($this->getKurir($trx->kurir, "nama")) : '-';
+            $namaPaket = !empty($trx->paket) ? strtoupper($this->getPaket($trx->paket, "nama")) : '-';
+            $kurirHtml = $namaKurir . "<br/><small class='text-primary'>" . $namaPaket . "</small>";
+
+            // 5. Metode Bayar
+            $metodeList  = [1 => "Bayar Di tempat (COD)", 2 => "Transfer"];
+            $metodeLabel = $metodeList[(int)$r->metode_bayar] ?? "Lainnya";
+
+            // 6. Gudang (Object)
+            $gudangId = $trx->gudang ?? 0;
+            if ($gudangId > 0) {
+                $gudang     = $this->getGudang($gudangId, "semua");
+                $kota       = $this->getKabupaten($gudang->idkab ?? 0);
+                $namaKota   = trim(($kota->tipe ?? '') . " " . ($kota->nama ?? ''));
+                $namaGudang = ($gudang->nama ?? '') . " - " . $namaKota;
+            } else {
+                $kota       = $this->getKabupaten($set->kota ?? 0);
+                $namaKota   = trim(($kota->tipe ?? '') . " " . ($kota->nama ?? ''));
+                $namaGudang = "PUSAT - " . $namaKota;
+            }
+
+            // Return Object Result
+            $resultData[] = (object) [
+                'id'           => $r->id,
+                'invoice'      => $r->invoice,
+                'total'        => $r->total,
+                'kodebayar'    => $r->kode_bayar ?? 0,
+                'kode_bayar'   => $r->kode_bayar ?? 0,
+                'biaya_cod'    => $r->biaya_cod ?? 0,
+                'metode_bayar' => $r->metode_bayar,
+                'metode_nama'  => $metodeLabel,
+                'tgl'          => $r->tgl,
+                'tgl_format'   => $tglFormatted,
+                'bukti'        => $bukti,
+                'trxid'        => $trx->id ?? 0,
+                'orderid'      => $trx->orderid ?? '-',
+                'pembeli_html' => $pembeliHtml,
+                'kurir_html'   => $kurirHtml,
+                'namagudang'   => $namaGudang,
+
+                // Raw data utuh berbentuk Object
+                'raw_payment'  => $r,
+                'raw_trx'      => $trx
+            ];
+        }
+
+        return $resultData;
     }
 
-    $builder->where('pembayaran.status', 0);
+    public function getPendingShipmentOrders(string $search = '', int $page = 1, int $perPage = 10): array
+    {
+        // Hitung offset berdasarkan page & perPage
+        $page   = max(1, $page);
+        $offset = ($page - 1) * $perPage;
 
-    // Hitung Total Rows
-    $totalRows = $builder->countAllResults(false);
+        // 1. Cari user ID (usrid & usrid_temp) dari tabel alamat & profil berdasarkan keyword
+        $arrUsrId     = [-1];
+        $arrUsrIdTemp = [-1];
 
-    // Ambil Data Pembayaran (Object)
-    $offset   = ($page - 1) * $perpage;
-    $payments = $builder->orderBy('pembayaran.id', 'DESC')
-                        ->limit($perpage, $offset)
-                        ->get()
-                        ->getResult(); // <-- Ambil sebagai Object
+        if (!empty($search)) {
+            // Cari di tabel alamat
+            $alamatResults = $this->db->table('alamat')
+                ->select('usrid, usrid_temp')
+                ->like('nama', $search)
+                ->orLike('alamat', $search)
+                ->orLike('nohp', $search)
+                ->orLike('no_hp', $search)
+                ->get()->getResult();
 
-    // Set Pager
-    $pager = \Config\Services::pager();
-    $this->pager = $pager->makeLinks($page, $perpage, $totalRows, 'bootstrap_full');
+            foreach ($alamatResults as $l) {
+                if ((int)$l->usrid > 0) {
+                    $arrUsrId[] = (int)$l->usrid;
+                }
+                if ((int)$l->usrid_temp > 0) {
+                    $arrUsrIdTemp[] = (int)$l->usrid_temp;
+                }
+            }
 
-    if (empty($payments)) {
-        return [];
-    }
+            // Cari di tabel profil (khusus member)
+            $profilResults = $this->db->table('profil')
+                ->select('usrid')
+                ->like('nama', $search)
+                ->orLike('no_hp', $search)
+                ->get()->getResult();
 
-    $resultData = [];
-    foreach ($payments as $r) {
-        // 1. Handling Transaksi (Mengembalikan Array Result -> Ambil indeks ke-0)
-        $trxList = $this->getTransaksiByPaymentId($r->id);
-        $trx     = $trxList[0] ?? (object) []; // Object Transaksi Pertamaecho "<pre>";
+            foreach ($profilResults as $p) {
+                if ((int)$p->usrid > 0) {
+                    $arrUsrId[] = (int)$p->usrid;
+                }
+            }
 
+            $arrUsrId     = array_unique($arrUsrId);
+            $arrUsrIdTemp = array_unique($arrUsrIdTemp);
+        }
 
+        // 2. Query Utama Tabel Transaksi
+        $builder = $this->db->table('transaksi t');
 
-        // 2. Konfirmasi Transfer (Object)
-        $konfirmasi = $db->table('konfirmasi')
-            ->where('idbayar', $r->id)
+        // Status = 1 (Perlu Dikirim / Dikemas)
+        $builder->where('t.status', 1);
+
+        // Filter Pencarian
+        if (!empty($search)) {
+            $builder->groupStart()
+                ->like('t.orderid', $search)
+                ->orLike('t.resi', $search)
+                ->orWhereIn('t.usrid', $arrUsrId)
+                ->orWhereIn('t.usrid_temp', $arrUsrIdTemp)
+            ->groupEnd();
+        }
+
+        // Hitung total baris sebelum limit/offset untuk kebutuhan pagination AJAX
+        $totalRows = $builder->countAllResults(false);
+
+        // Ambil data dengan Limit & Offset
+        $transaksiList = $builder->orderBy('t.id', 'DESC')
+            ->limit($perPage, $offset)
             ->get()
-            ->getRow(); // <-- Ambil sebagai Object
+            ->getResult();
 
-        $bukti = $konfirmasi->bukti ?? '';
-        $tglFormatted = date('d/m/Y H:i', strtotime($r->tgl));
-        if ($bukti) {
-            $tglFormatted .= "<br/><a href='javascript:void(0)' onclick='bukti(\"" . base_url("konfirmasi/" . $bukti) . "\")'>&raquo; Lihat Bukti Transfer</a>";
+        // 3. Relasikan Data
+        $resultData = [];
+
+        foreach ($transaksiList as $trx) {
+            $trx->tgl_formatted = !empty($trx->tgl) ? $this->ubahTgl("d M Y H:i", $trx->tgl) : '-';
+
+            // A. Ambil Data Pembayaran berdasarkan idbayar
+            $idBayar    = (int)($trx->idbayar ?? 0);
+            $pembayaran = ($idBayar > 0) ? $this->getPembayaran($idBayar) : null; 
+            
+            // Ekstrak invoice (atau gunakan fallback jika objek berbentuk array/string)
+            $invoiceNo  = $pembayaran ? ($pembayaran->invoice ?? $pembayaran->no_invoice ?? '-') : '-';
+
+            // B. Profil Pembeli
+            $isMember = ((int)$trx->usrid > 0);
+            $profil   = $isMember
+                ? $this->getProfil($trx->usrid, "semua", "usrid")
+                : $this->getUserTemp($trx->usrid_temp);
+
+            // C. Alamat Pembeli
+            $idAlamat = (int)($trx->alamat ?? 0);
+            $alamat   = ($idAlamat > 0) ? $this->getAlamatById($idAlamat) : null;
+
+            // D. Ekstrak nama, nohp, & alamat murni
+            $namaProfil   = esc($profil->nama ?? 'Tamu');
+            $namaAlamat   = esc($alamat->nama ?? '-');
+            $nohpAlamat   = esc($alamat->no_hp ?? $alamat->nohp ?? '-');
+            $detailAlamat = esc($alamat->alamat ?? '-');
+
+            if ($isMember) {
+                $pembeliHtml = "<span class='text-primary'>[" . $namaProfil . "]</span>";
+            } else {
+                $pembeliHtml = "<span class='text-danger'>[" . $namaProfil . "] <span class='badge bg-danger px-2 py-1 my-1'>non member</span></span>";
+            }
+            $pembeliHtml .= "<br/><small>" . $namaAlamat . " (" . $nohpAlamat . ")</small>";
+            $pembeliHtml .= "<br/><small class='m-t--4 dis-block'><i>" . $detailAlamat . "</i></small>";
+
+            // E. Badge COD (Bayar Ditempat)
+            $codHtml = ($trx->cod == 1) ? "<br/><span class='badge bg-warning text-white my-1 fw-normal'>Bayar Di tempat (COD)</span>" : "";
+
+            // F. Format Kurir & Gudang
+            $namaKurir = $this->getKurir($trx->kurir, 'nama');
+            $namaPaket = $this->getPaket($trx->paket, 'nama');
+            $kurirHtml = strtoupper($namaKurir) . "<br/><small class='text-primary'>" . strtoupper($namaPaket) . "</small>";
+
+            $gudang     = $this->getGudang($trx->gudang);
+            $namagudang = $gudang ? $gudang->nama : "PUSAT";
+
+            // G. Ambil Item Produk
+            $produkList = $this->getTransaksiProdukByIdTransaksi($trx->id);
+
+            // Satukan ke object transaksi
+            $trx->pembayaran   = $pembayaran;
+            $trx->invoice      = $invoiceNo;
+            $trx->cod_html     = $codHtml;
+            $trx->pembeli_html = $pembeliHtml;
+            $trx->kurir_html   = $kurirHtml;
+            $trx->nama_gudang  = $namagudang;
+            $trx->alamat_obj   = $alamat;
+            $trx->profil_obj   = $profil;
+            $trx->produk       = $produkList;
+
+            $resultData[] = $trx;
         }
 
-        // 3. Profil & Alamat (Object)
-        $isMember = ($r->usrid > 0);
-        $profil   = $isMember 
-            ? $this->getProfil($r->usrid, "semua", "usrid") 
-            : $this->getUserTemp($r->usrid_temp);
-
-        // 1. Ambil ID Alamat dari $trx dan pastikan berbentuk angka (int)
-$idAlamat = (int) ($trx->alamat ?? 0);
-
-// 2. Query ke fungsi getAlamatById
-$alamat = ($idAlamat > 0) ? $this->getAlamatById($idAlamat) : null;
-
-// 3. Jika $alamat masih null (misal karena alamat non-member ada di tabel usertemp / alamat_temp)
-// Ambil profil pembeli
-$isMember = ((int) $r->usrid > 0);
-$profil   = $isMember 
-    ? $this->getProfil($r->usrid, "semua", "usrid") 
-    : $this->getUserTemp($r->usrid_temp);
-
-// 4. Ambil properti dari object $alamat (gunakan nama kolom dari tabel alamat)
-$namaProfil   = esc($profil->nama ?? 'Tamu');
-$namaAlamat   = esc($alamat->nama ?? '-');
-$nohpAlamat   = esc($alamat->nohp ?? $alamat->no_hp ?? '-');
-$detailAlamat = esc($alamat->alamat ?? '-');
-
-// HTML Tampilan Pembeli
-if ($isMember) {
-    $pembeliHtml = "<span class='text-primary'>[" . $namaProfil . "]</span>";
-} else {
-    $pembeliHtml = "<span class='text-danger'>[" . $namaProfil . "] <i class='badge badge-danger p-lr-8 p-tb-3'>non member</i></span>";
-}
-$pembeliHtml .= "<br/><small>" . $namaAlamat . " (" . $nohpAlamat . ")</small>";
-$pembeliHtml .= "<br/><small class='m-t--4 dis-block'><i>" . $detailAlamat . "</i></small>";
-
-        // 4. Kurir (Object)
-        $namaKurir = !empty($trx->kurir) ? strtoupper($this->getKurir($trx->kurir, "nama")) : '-';
-        $namaPaket = !empty($trx->paket) ? strtoupper($this->getPaket($trx->paket, "nama")) : '-';
-        $kurirHtml = $namaKurir . "<br/><small class='text-primary'>" . $namaPaket . "</small>";
-
-        // 5. Metode Bayar
-        $metodeList  = [1 => "Bayar Ditempat (COD)", 2 => "Transfer"];
-        $metodeLabel = $metodeList[(int)$r->metode_bayar] ?? "Lainnya";
-
-        // 6. Gudang (Object)
-        $gudangId = $trx->gudang ?? 0;
-        if ($gudangId > 0) {
-            $gudang     = $this->getGudang($gudangId, "semua");
-            $kota       = $this->getKabupaten($gudang->idkab ?? 0);
-            $namaKota   = trim(($kota->tipe ?? '') . " " . ($kota->nama ?? ''));
-            $namaGudang = ($gudang->nama ?? '') . " - " . $namaKota;
-        } else {
-            $kota       = $this->getKabupaten($set->kota ?? 0);
-            $namaKota   = trim(($kota->tipe ?? '') . " " . ($kota->nama ?? ''));
-            $namaGudang = "PUSAT - " . $namaKota;
-        }
-
-        // Return Object Result
-        $resultData[] = (object) [
-            'id'           => $r->id,
-            'invoice'      => $r->invoice,
-            'total'        => $r->total,
-            'kodebayar'    => $r->kode_bayar ?? 0,
-            'kode_bayar'   => $r->kode_bayar ?? 0,
-            'biaya_cod'    => $r->biaya_cod ?? 0,
-            'metode_bayar' => $r->metode_bayar,
-            'metode_nama'  => $metodeLabel,
-            'tgl'          => $r->tgl,
-            'tgl_format'   => $tglFormatted,
-            'bukti'        => $bukti,
-            'trxid'        => $trx->id ?? 0,
-            'orderid'      => $trx->orderid ?? '-',
-            'pembeli_html' => $pembeliHtml,
-            'kurir_html'   => $kurirHtml,
-            'namagudang'   => $namaGudang,
-
-            // Raw data utuh berbentuk Object
-            'raw_payment'  => $r,
-            'raw_trx'      => $trx
+        return [
+            'total'   => $totalRows,
+            'page'    => $page,
+            'perPage' => $perPage,
+            'data'    => $resultData
         ];
     }
 
-    return $resultData;
-}
+    public function getDetailPesanan(int $id): ?array
+    {
+        // 1. Ambil data transaksi utama
+        $transaksi = $this->db->table('transaksi')
+            ->where('id', $id)
+            ->get()
+            ->getRow();
 
-/**
- * Helper Private: Meratakan segala tipe data (Object, Array 2D, Array 1D, NULL) menjadi Array 1D yang aman
- */
-/**
- * Helper Private: Meratakan segala tipe data (Object, Array 2D, Array 1D, NULL) menjadi Array 1D yang aman.
- * Jika masukan berupa Array 2D (seperti getTransaksiByPaymentId), otomatis mengambil baris pertama ([0]).
- */
-private function toArray($data): array
+        if (!$transaksi) {
+            return null;
+        }
+
+        $tglTransaksi = !empty($transaksi->tgl) 
+            ? $this->ubahTgl("d M Y H:i", $transaksi->tgl) 
+            : "-";
+
+        // 2. Pengaturan Global
+        $set = $this->globalset("semua");
+
+        // 3. Data User / Pembeli
+        $isMember = ((int)$transaksi->usrid > 0);
+        $usr      = $isMember 
+            ? $this->getProfil($transaksi->usrid, "semua", "usrid") 
+            : $this->getUserTemp($transaksi->usrid_temp);
+
+        // 4. Alamat & Kurir
+        $alamat    = $this->getAlamatById($transaksi->alamat);
+        $namaKurir = strtoupper($this->getKurir($transaksi->kurir, "nama"));
+        $namaPaket = strtoupper($this->getPaket($transaksi->paket, "nama"));
+        $kurir     = $namaKurir . " - " . $namaPaket;
+
+        // 5. Badge COD & Dropship (Bootstrap 5)
+        $cod = "";
+        if ((int)$transaksi->cod === 1) {
+            $cod .= "<br/><span class='badge bg-warning text-dark mt-1 fw-normal'>Bayar Ditempat (COD)</span>";
+        }
+
+        // 6. Gudang & Kota
+        $idGudang = (int)($transaksi->gudang ?? 0);
+        if ($idGudang > 0) {
+            $gudang     = $this->getGudang($idGudang);
+            $idKab      = $gudang->idkab ?? 0;
+            $kota       = $this->getKabupaten($idKab);
+            $kotaNama   = ($kota->tipe ?? '') . " " . ($kota->nama ?? '');
+            $namaGudang = ($gudang->nama ?? 'Gudang') . " - " . $kotaNama;
+        } else {
+            $idKab      = $set->kota ?? 0;
+            $kota       = $this->getKabupaten($idKab);
+            $kotaNama   = ($kota->tipe ?? '') . " " . ($kota->nama ?? '');
+            $namaGudang = "PUSAT - " . $kotaNama;
+        }
+
+        // 7. RELASI KEDUA: Data Produk Transaksi (transaksiproduk)
+        $dbProduk = $this->db->table('transaksi_produk')
+            ->where('idtransaksi', $id)
+            ->get()
+            ->getResult();
+
+        $produkList = [];
+
+        foreach ($dbProduk as $r) {
+            $produk = $this->getProdukById($r->idproduk);
+
+            // Standar default gambar jika tidak ada atau tidak ditemukan
+            $gambar = base_url('assets/img/default-product.png');
+
+            if (is_object($produk)) {
+                $nama = $produk->nama;
+                
+                // Variasi Produk
+                $idVariasi = (int)($r->variasi ?? 0);
+                $vari      = ($idVariasi !== 0) 
+                    ? $this->getVariasi($idVariasi, "semua") 
+                    : null;
+
+                $variasi = "";
+                if (is_object($vari)) {
+                    $namaWarna = $this->getWarna($vari->idwarna, "nama");
+                    $variasi   = ($produk->variasi ?? '') . " " . $namaWarna;
+                }
+
+                // --- AMBIL GAMBAR DARI TABEL `uploads` BERDASARKAN id_produk_variasi ---
+                if ($idVariasi > 0) {
+                    $upload = $this->db->table('upload')
+                        ->where('id_produk_variasi', $idVariasi)
+                        ->get()
+                        ->getRow();
+
+                    // Sesuaikan 'nama' dengan nama kolom file gambar di tabel uploads Anda (misal: 'nama', 'file', atau 'url')
+                    if ($upload && !empty($upload->nama)) {
+                        $gambar = base_url('cdn/uploads/' . $upload->nama);
+                    }
+                }
+
+            } else {
+                $nama    = "Produk telah dihapus";
+                $variasi = "";
+            }
+
+            // Simpan detail item produk
+            $produkList[] = [
+                'detail'      => $r,
+                'produk'      => $produk,
+                'nama_produk' => $nama,
+                'variasi'     => $variasi,
+                'gambar'      => $gambar, // <-- Tambahan field gambar
+                'jumlah'      => $r->jumlah ?? 1,
+                'harga'       => $r->harga ?? 0,
+                'subtotal'    => ($r->harga ?? 0) * ($r->jumlah ?? 1),
+                'keterangan'  => $r->keterangan
+            ];
+        }
+
+        // 8. Return Array Terstruktur
+        return [
+            'transaksi_id'  => $id,
+            'transaksi'     => $transaksi,
+            'tgl_transaksi' => $tglTransaksi,
+            'user'          => $usr,
+            'alamat'        => $alamat,
+            'kurir'         => $kurir,
+            'cod_html'      => $cod,
+            'nama_gudang'   => $namaGudang,
+            'pengaturan'    => $set,
+            'produk_list'   => $produkList // List item produk siap dikirim ke view
+        ];
+    }
+
+    public function getInvoiceData(int $idbayar): ?array
 {
-    if (empty($data)) {
-        return [];
+    if ($idbayar <= 0) {
+        return null;
     }
 
-    // Jika data berupa Object, ubah ke Array
-    if (is_object($data)) {
-        $data = (array) $data;
+    // 1. Ambil data transaksi (Bisa lebih dari 1 transaksi per pembayaran)
+    $transactions = $this->getTransaksiById($idbayar, true);
+
+    if (empty($transactions)) {
+        return null;
     }
 
-    // Jika data berupa Array 2D / list berindeks [0 => ...], ambil elemen pertamanya
-    if (is_array($data) && isset($data[0])) {
-        $first = $data[0];
-        return is_object($first) ? (array) $first : (array) $first;
+    $trxFirst = $transactions[0];
+
+    // 2. Data Pembayaran & Pengaturan Global
+    $byr = $this->getPembayaran($trxFirst->idbayar);
+    $set = $this->globalset("semua");
+
+    // 3. Data User / Pembeli
+    $isMember = ((int)$trxFirst->usrid > 0);
+    $user     = $isMember 
+        ? $this->getUser($trxFirst->usrid) 
+        : $this->getUserTemp($trxFirst->usrid_temp);
+
+    // 4. Format Kontak
+    $nohp   = $user->no_hp ?? '';
+    $uname  = $user->username ?? '';
+    $kontak = !empty($nohp) ? $nohp : $uname;
+    $kontak = !empty($kontak) ? " ({$kontak})" : "";
+
+    $listTransaksi = [];
+
+    // 5. LOOPING SETIAP TRANSAKSI
+    foreach ($transactions as $trx) {
+        $trx->tgl_formatted = $this->ubahTgl("D, d M Y",$trx->tgl);
+
+        // Alamat Pengiriman
+        $alamat        = $trx->alamat;
+        $alamatLengkap = "-";
+        if (is_object($alamat)) {
+            $kec  = $this->getKecamatan($alamat->idkec);
+            $kab  = $this->getKabupaten($kec->idkab ?? 0);
+            $prov = $this->getProvinsi($kab->idprov ?? 0, "nama");
+
+            $namaKec = $kec->nama ?? '';
+            $namaKab = $kab->nama ?? '';
+            $kodePos = $alamat->kodepos ?? '';
+
+            $alamatLengkap = trim("{$alamat->alamat}, {$namaKec} {$namaKab} {$prov} {$kodePos}");
+        }
+
+        // Ambil Produk Per Transaksi
+        $dbProduk = $this->db->table('transaksi_produk')
+            ->where('idtransaksi', $trx->id)
+            ->get()
+            ->getResult();
+
+        $produkList  = [];
+        $totalProduk = 0;
+        $totalQty    = 0;
+        $ket         = "";
+
+        foreach ($dbProduk as $r) {
+            $prod      = $this->getProdukById($r->idproduk, "semua");
+            $hargaAwal = $r->harga ?? 0;
+            $jumlah    = $r->jumlah ?? 1;
+            $subtotal  = $hargaAwal * $jumlah;
+
+            $totalProduk += $subtotal;
+            $totalQty    += $jumlah;
+
+            if (!empty($r->keterangan)) {
+                $ket .= $r->keterangan . "<br/>";
+            }
+
+            if (is_object($prod)) {
+                $kode = $prod->kode ?? '-';
+                $nama = $prod->nama;
+
+                $idVariasi = (int)($r->variasi ?? 0);
+                $vari      = ($idVariasi !== 0) ? $this->getVariasi($idVariasi) : null;
+
+                $variasi = "";
+                if (is_object($vari)) {
+                    $namaWarna = $this->getWarna($vari->idwarna, "nama");
+                    $variasi   = ($prod->variasi ?? '') . " " . $namaWarna;
+                }
+            } else {
+                $kode    = "-";
+                $nama    = "Produk dihapus";
+                $variasi = "";
+            }
+
+            $produkList[] = [
+                'detail'             => $r,
+                'kode'               => $kode,
+                'nama_produk'        => $nama,
+                'variasi'            => $variasi,
+                'jumlah'             => $jumlah,
+                'harga'              => $hargaAwal,
+                'harga_formatted'    => number_format($hargaAwal, 0, ',', '.'),
+                'subtotal'           => $subtotal,
+                'subtotal_formatted' => number_format($subtotal, 0, ',', '.'),
+                'keterangan'         => $r->keterangan ?? ''
+            ];
+        }
+
+        // Perhitungan Per Transaksi
+        $beratGram  = (float)($trx->berat ?? 0);
+        $beratKg    = round($beratGram / 1000, 2, PHP_ROUND_HALF_UP);
+        $ongkir     = (float)($trx->ongkir ?? 0);
+        $biayaCod   = (float)($trx->biaya_cod ?? 0);
+        $kodeBayar  = (float)($byr->kodebayar ?? 0);
+        $diskon     = (float)($byr->diskon ?? 0);
+
+        $grandTotal = $totalProduk + $ongkir + $biayaCod + $kodeBayar - $diskon;
+
+        $listTransaksi[] = [
+            'detail'               => $trx,
+            'alamat'               => $alamat,
+            'alamat_lengkap'       => $alamatLengkap,
+            'produk_list'          => $produkList,
+            'total_produk'         => $totalProduk,
+            'total_formatted'      => number_format($totalProduk, 0, ',', '.'),
+            'total_qty'            => $totalQty,
+            'berat_kg'             => $beratKg,
+            'keterangan'           => $ket,
+            'grand_total'          => $grandTotal,
+            'grand_total_formatted' => number_format($grandTotal, 0, ',', '.'),
+        ];
     }
 
-    return is_array($data) ? $data : [];
+    return [
+        'pembayaran'     => $byr,
+        'pengaturan'     => $set,
+        'user'           => $user,
+        'kontak'         => $kontak,
+        'list_transaksi' => $listTransaksi
+    ];
 }
+
+public function getLabelData($idParam): ?array
+    {
+        if (empty($idParam)) {
+            return null;
+        }
+
+        // 1. Pengaturan Global
+        $set = $this->globalset("semua");
+
+        // Support multiple ID jika dipisahkan koma
+        $ids = is_array($idParam) ? $idParam : explode(',', (string)$idParam);
+        $list_transaksi = [];
+
+        foreach ($ids as $trxid) {
+            $trxid = (int) trim($trxid);
+            if ($trxid <= 0) continue;
+
+            // 2. Detail Transaksi
+            $trx = $this->db->table('transaksi')->where('id', $trxid)->get()->getRow();
+            if (!$trx) continue;
+
+            // 3. Alamat Penerima & Susun Alamat Lengkap
+            $alamat = $this->db->table('alamat')->where('id', $trx->alamat)->get()->getRow();
+            $alamatLengkap = '-';
+
+            if ($alamat) {
+                $kec  = $this->db->table('kec')->where('id', $alamat->idkec)->get()->getRow();
+                $kab  = $kec ? $this->db->table('kab')->where('id', $kec->idkab)->get()->getRow() : null;
+                $prov = $kab ? $this->db->table('prov')->where('id', $kab->idprov)->get()->getRow() : null;
+
+                $namaKec  = $kec->nama ?? '';
+                $namaKab  = ($kab->tipe ?? '') . ' ' . ($kab->nama ?? '');
+                $namaProv = $prov->nama ?? '';
+                $kodePos  = $alamat->kodepos ?? '';
+
+                $alamatLengkap = trim("{$namaKec}, {$namaKab}, {$namaProv} {$kodePos}", ', ');
+            }
+
+            // 4. Data Gudang / Kota Asal Pengirim
+            $gudang = null;
+            if (!empty($trx->gudang) && (int)$trx->gudang > 0) {
+                $gudang = $this->db->table('gudang')->where('id', $trx->gudang)->get()->getRow();
+                $kabAsal = $gudang ? $this->db->table('kab')->where('id', $gudang->idkab)->get()->getRow() : null;
+            } else {
+                $kabAsal = $this->db->table('kab')->where('id', $set->kota ?? 0)->get()->getRow();
+            }
+            $trx->gudang_detail = $gudang;
+            $kotaAsal = $kabAsal ? trim(($kabAsal->tipe ?? '') . ' ' . ($kabAsal->nama ?? '')) : '-';
+
+            // 5. Nama Kurir & Paket
+            $kurirObj = $this->db->table('kurir')->where('id', $trx->kurir ?? 0)->get()->getRow();
+            $paketObj = $this->db->table('paket')->where('id', $trx->paket ?? 0)->get()->getRow();
+            $trx->nama_kurir = $kurirObj->nama ?? ($trx->kurir ?? '-');
+            $trx->nama_paket = $paketObj->nama ?? ($trx->paket ?? '-');
+
+            // 6. Data Rincian Produk Transaksi
+            $trxProduk = $this->db->table('transaksi_produk')->where('idtransaksi', $trxid)->get()->getResult();
+            $produkList = [];
+
+            foreach ($trxProduk as $tp) {
+                $prod = $this->db->table('produk')->where('id', $tp->idproduk)->get()->getRow();
+
+                // Format Variasi (Warna & Ukuran)
+                $variasiText = '';
+                $idVariasi   = (int)($tp->variasi ?? 0);
+
+                if ($idVariasi > 0) {
+                    $var = $this->db->table('produk_variasi')->where('id', $idVariasi)->get()->getRow();
+                    if ($var) {
+                        if (($var->warna ?? 0) > 0) {
+                            $warnaObj = $this->db->table('variasi_warna')->where('id', $var->idwarna)->get()->getRow();
+                            $variasiText .= ($prod->variasi ?? 'Warna') . ' ' . ($warnaObj->nama ?? '');
+                        }
+                    }
+                }
+
+                $produkList[] = [
+                    'nama_produk' => $prod->nama ?? 'Produk dihapus',
+                    'kode'        => $prod->kode ?? '-',
+                    'variasi'     => $variasiText,
+                    'jumlah'      => $tp->jumlah ?? 1
+                ];
+            }
+
+            // 7. Data User / Pembeli
+            $user = null;
+            if (!empty($trx->usrid) && (int)$trx->usrid > 0) {
+                $user = $this->db->table('user_data')->where('id', $trx->usrid)->get()->getRow();
+            } elseif (!empty($trx->usrid_temp) && (int)$trx->usrid_temp > 0) {
+                $user = $this->db->table('user_temp')->where('id', $trx->usrid_temp)->get()->getRow();
+            }
+
+            $list_transaksi[] = [
+                'detail'         => $trx,
+                'alamat'         => $alamat,
+                'alamat_lengkap' => $alamatLengkap,
+                'kota_asal'      => $kotaAsal,
+                'user'           => $user,
+                'produk_list'    => $produkList,
+            ];
+        }
+
+        if (empty($list_transaksi)) {
+            return null;
+        }
+
+        return [
+            'pengaturan'     => $set,
+            'list_transaksi' => $list_transaksi,
+        ];
+    }
 }
 

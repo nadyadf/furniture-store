@@ -75,6 +75,13 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin'], static functio
   $routes->get('pesanan', 'Admin::pesanan');
   $routes->post('auth', 'Admin::auth');
   $routes->post('api/pesanan', 'Api::pesanan');
+  $routes->get('api/detailpesanan', 'Api::detailpesanan');
+  $routes->get('api/cetakInvoice', 'Api::cetakInvoice');
+  $routes->get('api/cetakLabel', 'Api::cetakLabel');
+  $routes->post('api/updatepesanan', 'Api::updatepesanan');
+  $routes->post('api/batalkanpesanan', 'Api::batalkanpesanan');
+  $routes->post('api/inputresi', 'Api::inputresi');
+  $routes->post('api/terimapesanan', 'Api::terimapesanan');
 });
 
 

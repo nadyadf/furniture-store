@@ -197,8 +197,7 @@
           </button>
           
           <a href="<?= site_url() ?>" class="logo flex-shrink-0">
-            <!-- Tinggi dikembalikan ke 45px dan object-fit contain agar proporsional -->
-            <img src="<?= base_url("cdn/assets/img/" . $set->logo) ?>" style="height: 45px; max-width: 180px; object-fit: contain;" alt="Logo" />
+            <img src="<?= base_url("cdn/assets/img/" . $set->logo) ?>" style="height: 52px; max-width: 220px; object-fit: contain;" alt="Logo" />
           </a>
         </div>
 

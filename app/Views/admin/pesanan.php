@@ -9,7 +9,7 @@
     <div class="card-header row align-items-center g-3">
       <!-- Tabs Pesanan -->
       <div class="col-md-8">
-        <ul class="nav nav-tabs card-header-tabs border-bottom-0" id="pesananTab">
+        <ul class="nav nav-tabs border-0" id="pesananTab">
           <li class="nav-item">
             <a href="javascript:void(0)" class="nav-link active bayar" data-item="bayar">
               Belum Dibayar
@@ -154,9 +154,200 @@
     $("#cetakInvoice").on("submit", function(e){
       e.preventDefault();
       var invId = $("#inv").val();
-      window.open("<?= site_url('api/cetakInvoice') ?>?id=" + invId, "_blank");
+      window.open("<?= site_url('admin/api/cetakInvoice') ?>?id=" + invId, "_blank");
     });
   });
+
+  function loadingDulu() {
+    $("#load").html(`
+      <div class="d-flex align-items-center justify-content-center gap-2 py-3">
+        <div class="spinner-border spinner-border-sm text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <span class="text-secondary fw-semibold">Memproses data...</span>
+      </div>
+    `);
+  }
+
+  function detail(id) {
+    // 1. Inisialisasi dan Tampilkan Modal Bootstrap 5
+    var modalEl = document.getElementById('modaldetail');
+    var modalObj = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modalObj.show();
+
+    // 2. Reset tampilan loader
+    $("#detailoader").show();
+    $("#detaiload").hide();
+
+    // 3. Load Konten HTML via AJAX
+    var urlDetail = "<?= site_url('admin/api/detailpesanan') ?>?theid=" + encodeURIComponent(id);
+
+    $("#modaldetail .modal-body").load(urlDetail, function(response, status, xhr) {
+      if (status === "error") {
+        $("#modaldetail .modal-body").html(
+          '<div class="alert alert-danger m-3">Gagal memuat detail pesanan: ' + xhr.statusText + '</div>'
+        );
+      } else {
+        $("#inv").val(id);
+      }
+      
+      // Sembunyikan loader dan tampilkan konten
+      $("#detailoader").hide();
+      $("#detaiload").show();
+    });
+  }
+
+  function cetak(inv) {
+    if (!inv) return;
+    
+    // Menggunakan encodeURIComponent untuk keamanan karakter khusus pada parameter URL
+    const url = "<?= site_url('admin/api/cetakInvoice') ?>?id=" + encodeURIComponent(inv);
+    
+    // Membuka di tab baru secara eksplisit ('_blank')
+    window.open(url, '_blank');
+  }
+
+  function selesai(id) {
+    if (!id) return;
+
+    Swal.fire({
+      title: "Yakin pesanan sudah selesai?",
+      text: "Status pesanan akan diupdate ke selesai",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#198754",
+      cancelButtonColor: "#ff646d",
+      confirmButtonText: "Ya, Selesai!",
+      cancelButtonText: "Batal"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Payload data POST + CSRF CI4
+        var postData = { 
+          "id": id,
+          "<?= csrf_token() ?>": "<?= csrf_hash() ?>"
+        };
+
+        $.post("<?= site_url('admin/api/terimapesanan'); ?>", postData, function(data) {
+          if (typeof updateToken === 'function' && data.token) {
+            updateToken(data.token);
+          }
+
+          if (data.success === true) {
+            Swal.fire({
+              title: "Berhasil!",
+              text: "Data pesanan telah diperbarui",
+              icon: "success"
+            }).then(() => {
+              // Ambil tab aktif saat ini lalu reload datanya
+              var activeStatus = $("#pesananTab .nav-link.active").data("item") || "dikirim";
+              loadPesanan(activeStatus, 1);
+            });
+          } else {
+            Swal.fire({
+              title: "Gagal!",
+              text: data.msg || "Gagal mengupdate data, coba ulangi beberapa saat lagi",
+              icon: "error"
+            });
+          }
+        }, "json").fail(function() {
+          Swal.fire({
+            title: "Error!",
+            text: "Gagal terhubung ke server. Silakan coba lagi.",
+            icon: "error"
+          });
+        });
+      }
+    });
+  }
+
+  function batalkan(id) {
+    if (!id) return;
+
+    Swal.fire({
+      title: "Yakin membatalkan pesanan ini?",
+      text: "Pesanan yang sudah dibatalkan tidak dapat dikembalikan lagi",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc3545",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Ya, Batalkan!",
+      cancelButtonText: "Batal"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Susun payload POST + Token CSRF CI4
+        var postData = {
+          "id": id,
+          "<?= csrf_token() ?>": "<?= csrf_hash() ?>"
+        };
+
+        $.post("<?= site_url('admin/api/batalkanpesanan'); ?>", postData, function(data) {
+          // Refresh token CSRF di frontend
+          if (typeof updateToken === 'function' && data.token) {
+            updateToken(data.token);
+          }
+
+          if (data.success === true) {
+            Swal.fire({
+              title: "Berhasil!",
+              text: "Pesanan telah berhasil dibatalkan",
+              icon: "success"
+            }).then(() => {
+              // Ambil tab status yang sedang aktif saat ini lalu reload datanya
+              var activeStatus = $("#pesananTab .nav-link.active").data("item") || "batal";
+              loadPesanan(activeStatus, 1);
+            });
+          } else {
+            Swal.fire({
+              title: "Gagal!",
+              text: data.msg || data.message || "Gagal membatalkan pesanan, coba ulangi beberapa saat lagi",
+              icon: "error"
+            });
+          }
+        }, "json").fail(function() {
+          Swal.fire({
+            title: "Error!",
+            text: "Gagal terhubung ke server. Silakan coba lagi.",
+            icon: "error"
+          });
+        });
+      }
+    });
+  }
 </script>
+
+<div class="modal fade" id="modaldetail" tabindex="-1" aria-labelledby="modaldetailLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title id="modaldetailLabel">
+          <i class="fas fa-boxes me-2"></i>Detail Pesanan
+        </h6>
+        <!-- Tombol Close Bootstrap 5 -->
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="detaiload"></div>
+        
+        <!-- Indikator Loader (Pilihan Spinner BS5 atau FontAwesome) -->
+        <div id="detailoader" class="py-3 text-center text-muted">
+          <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <span>Memuat, tunggu sebentar...</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <form id="cetakInvoice">
+          <input type="hidden" id="inv" name="inv" />
+          <button class="btn btn-sm btn-secondary" type="submit">
+            <i class="fas fa-print me-1"></i> Cetak Invoice
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
 <?= $this->endSection() ?>
