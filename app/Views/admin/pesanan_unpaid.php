@@ -1,14 +1,15 @@
 <div class="table-responsive">
-  <table class="table table-hover align-middle">
+  <!-- Menggunakan table-sm & base font 0.85rem (13.5px) -->
+  <table class="table table-sm table-hover align-middle" style="font-size: 0.85rem;">
     <thead class="table-light">
       <tr>
-        <th scope="col" class="text-center">Tanggal</th>
-        <th scope="col">No. Invoice</th>
-        <th scope="col">Nama Pembeli</th>
-        <th scope="col">Total</th>
-        <th scope="col">Kode Bayar</th>
-        <th scope="col">Kurir</th>
-        <th scope="col" class="text-center">Aksi</th>
+        <th scope="col" class="text-center" style="width: 12%;">Tanggal</th>
+        <th scope="col" style="width: 22%;">No. Invoice</th>
+        <th scope="col" style="width: 25%;">Nama Pembeli</th>
+        <th scope="col" style="width: 15%;">Total</th>
+        <th scope="col" style="width: 8%;">Kode Bayar</th>
+        <th scope="col" style="width: 12%;">Kurir</th>
+        <th scope="col" class="text-center" style="width: 6%;">Aksi</th>
       </tr>
     </thead>
     <tbody>
@@ -17,20 +18,20 @@
           <tr>
             <!-- Tanggal & Indicator Status -->
             <td class="text-center">
-              <i class="fas fa-circle text-danger me-1 mb-1"></i>
+              <i class="fas fa-circle text-danger me-1 mb-1" style="font-size: 0.55rem;"></i>
               <br/>
-              <small><?= $unp->tgl_format ?></small>
+              <small class="text-muted" style="font-size: 0.775rem;"><?= $unp->tgl_format ?></small>
             </td>
 
             <!-- Invoice & Order ID -->
             <td>
               <div class="mb-1">
-                <small class="text-muted">ID Transaksi:</small><br/>
-                <span class="fw-bold text-dark"><?= esc($unp->raw_trx->orderid ?? '-') ?></span>
+                <small class="text-muted d-block lh-1" style="font-size: 0.725rem;">ID Transaksi:</small>
+                <strong class="text-dark"><?= esc($unp->raw_trx->orderid ?? '-') ?></strong>
               </div>
               <div>
-                <small class="text-muted">No Invoice:</small><br/>
-                <span class="fw-bold text-primary"><?= esc($unp->raw_payment->invoice ?? '-') ?></span>
+                <small class="text-muted d-block lh-1" style="font-size: 0.725rem;">No Invoice:</small>
+                <strong class="text-primary"><?= esc($unp->raw_payment->invoice ?? '-') ?></strong>
               </div>
             </td>
 
@@ -41,43 +42,52 @@
             <?php 
               $totalBersih = ($unp->raw_payment->total ?? 0) - ($unp->raw_payment->kode_bayar ?? 0) + ($unp->raw_payment->biaya_cod ?? 0);
             ?>
-            <td class="fw-bold text-success">
-              Rp <?= number_format($totalBersih, 0, ',', '.') ?><br/><small class='text-primary'><?=$unp->metode_nama?></small>
+            <td>
+              <span class="fw-bold text-success d-block">
+                Rp <?= number_format($totalBersih, 0, ',', '.') ?>
+              </span>
+              <small class="text-primary fw-semibold" style="font-size: 0.75rem;"><?= $unp->metode_nama ?></small>
             </td>
 
             <!-- Kode Unik -->
-            <td class="text-muted">
+            <td class="text-muted fw-semibold">
               <?= number_format($unp->raw_payment->kode_bayar ?? 0, 0, ',', '.') ?>
             </td>
 
             <!-- Gudang & Kurir -->
             <td>
-              <small class="text-muted d-block mb-1">
-                <i class="fas fa-shipping-fast text-primary me-1"></i> <?= esc($unp->namagudang) ?>
+              <small class="text-muted d-block mb-1" style="font-size: 0.725rem;">
+                <i class="fas fa-warehouse text-primary me-1"></i> <?= esc($unp->namagudang) ?>
               </small>
               <?= $unp->kurir_html ?>
             </td>
 
             <!-- Dropdown Aksi BS5 -->
-            <td class="text-center" style="min-width: 140px;">
+                        <!-- Dropdown Aksi BS5 dengan Popper Fixed Strategy -->
+            <td class="text-center">
               <div class="dropdown">
-                <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <button class="btn btn-primary btn-sm dropdown-toggle py-1 px-2" 
+                        style="font-size: 0.775rem;" 
+                        type="button" 
+                        data-bs-toggle="dropdown" 
+                        data-bs-popper-config='{"strategy":"fixed"}' 
+                        aria-expanded="false">
                   Pilih Aksi
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow">
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size: 0.825rem;">
                   <li>
-                    <a class="dropdown-item py-2" href="javascript:void(0)" onclick="konfirm(<?= $unp->raw_payment->id ?>)">
+                    <a class="dropdown-item py-1.5" href="javascript:void(0)" onclick="konfirm(<?= $unp->raw_payment->id ?>)">
                       <i class="fas fa-check text-success me-2"></i> Verifikasi
                     </a>
                   </li>
                   <li>
-                    <a class="dropdown-item py-2" href="javascript:void(0)" onclick="detail(<?= $unp->trxid ?>)">
+                    <a class="dropdown-item py-1.5" href="javascript:void(0)" onclick="detail(<?= $unp->trxid ?>)">
                       <i class="fas fa-list text-primary me-2"></i> Detail
                     </a>
                   </li>
-                  <li><hr class="dropdown-divider"></li>
+                  <li><hr class="dropdown-divider my-1"></li>
                   <li>
-                    <a class="dropdown-item py-2 text-danger" href="javascript:void(0)" onclick="batalin(<?= $unp->raw_payment->id ?>)">
+                    <a class="dropdown-item py-1.5 text-danger" href="javascript:void(0)" onclick="batalin(<?= $unp->raw_payment->id ?>)">
                       <i class="fas fa-times me-2"></i> Batalkan
                     </a>
                   </li>
@@ -89,7 +99,7 @@
       <?php else: ?>
         <tr>
           <td colspan="7" class="text-center py-4 text-danger">
-            <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+            <i class="fas fa-inbox fa-2x mb-2 d-block text-muted"></i>
             Belum ada pesanan yang perlu diverifikasi.
           </td>
         </tr>
@@ -99,7 +109,7 @@
 
   <!-- Pagination AJAX CI4 -->
   <?php if (isset($pager)): ?>
-    <div class="d-flex justify-content-center mt-4 pagination-ajax">
+    <div class="d-flex justify-content-center mt-3 pagination-ajax" style="font-size: 0.8rem;">
       <?= $pager ?>
     </div>
   <?php endif; ?>
@@ -136,8 +146,10 @@
       },
       buttonsStyling: false
     }).then((result) => {
-      loadingDulu();
+      // Hanya jalankan loading jika user menekan tombol "Ya, Verifikasi"
       if (result.isConfirmed) {
+        loadingDulu();
+
         $.post("<?= site_url("admin/api/updatepesanan") ?>", {
           "id": id,
           "statusbayar": 1,
@@ -173,8 +185,8 @@
       },
       buttonsStyling: false
     }).then((result) => {
-      loadingDulu();
       if (result.isConfirmed) {
+        loadingDulu();
         $.post("<?= site_url('admin/api/batalkanpesanan') ?>", {
           "id": id,
           "<?= csrf_token() ?>": "<?= csrf_hash() ?>"

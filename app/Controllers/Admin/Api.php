@@ -58,7 +58,7 @@ class Api extends AdminBaseController
 
           case 'dikirim':
               // Status 2: Dikirim
-              $listPesanan = $this->func->getPendingShipmentOrders($page, $cari);
+              $listPesanan = $this->func->getShippedOrders($cari, $page);
               $data = [
                   'shippedOrders' => $listPesanan,
                   'pager'         => $this->func->pager,
@@ -496,5 +496,181 @@ class Api extends AdminBaseController
         ]);
     }
 
+    public function lacakiriman()
+    {
+        // 1. Cek Sesi Login Admin
+        if (!session()->has('isLoggedIn')) {
+            return redirect()->to('admin/login');
+        }
+
+        $request = \Config\Services::request();
+        $orderId = $request->getGet('orderid');
+
+        if (empty($orderId)) {
+            return $this->response->setBody("
+                <div class='alert alert-danger py-2 px-3 fs-7 mb-0'>
+                    <i class='fas fa-exclamation-triangle me-1'></i> Order ID tidak ditemukan.
+                </div>
+            ");
+        }
+
+        $db = \Config\Database::connect();
+
+        // 2. Ambil Setting API Key
+        $apiKey = $this->func->globalset("rajaongkir") ?? '';
+
+        // 3. Ambil Detail Transaksi
+        $trxArray = $this->func->getTransaksiByOrderId($orderId, true);
+        $trx      = $trxArray[0] ?? null;
+
+        if (!$trx || empty($trx->resi)) {
+            return $this->response->setBody("
+                <div class='alert alert-warning py-2 px-3 fs-7 mb-0'>
+                    <i class='fas fa-info-circle me-1'></i> Resi pengiriman belum diinput untuk pesanan ini.
+                </div>
+            ");
+        }
+
+        // Ambil Kode Kurir Ekspedisi
+        $kodeKurir  = strtolower($this->func->getKurir($trx->kurir, 'rajaongkir') ?? 'jne');
+        $airwayBill = trim($trx->resi);
+
+        // Build URL Komerce/RajaOngkir Sandbox (Ubah domain ke api.komerce.id jika sudah Production)
+        $apiUrl = "https://api-sandbox.collaborator.komerce.id/order/api/v1/orders/history-airway-bill?" . http_build_query([
+            'shipping'    => $kodeKurir,
+            'airway_bill' => $airwayBill
+        ]);
+
+        // 4. Hit API Komerce/RajaOngkir (GET Method)
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL            => $apiUrl,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING       => "",
+            CURLOPT_MAXREDIRS      => 10,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST  => "GET",
+            CURLOPT_HTTPHEADER     => [
+                "x-api-key: " . $apiKey,
+                "Content-Type: application/json"
+            ],
+        ]);
+
+        $response = curl_exec($curl);
+        $err      = curl_error($curl);
+        curl_close($curl);
+
+        if ($err) {
+            return $this->response->setBody("
+                <div class='alert alert-danger py-2 px-3 fs-7 mb-0'>
+                    <i class='fas fa-exclamation-circle me-1'></i> Terjadi kendala saat menghubungi server ekspedisi. Silakan coba lagi.
+                </div>
+            ");
+        }
+
+        $res = json_decode($response);
+
+        // 5. Render Output HTML Pelacakan
+        $isSuccess  = $res->status ?? false;
+        $data       = $res->data ?? null;
+
+        if ($isSuccess && !empty($data)) {
+            $history     = $data->history ?? $data->manifest ?? [];
+            $summary     = $data->summary ?? null;
+            $isDelivered = (strtolower($summary->status ?? $data->status ?? '') === 'delivered') || ($data->is_delivered ?? false);
+
+            $html = "
+                <div class='mb-2 pb-2 border-bottom' style='font-size: 0.85rem;'>
+                    <div class='d-flex justify-content-between align-items-center mb-1'>
+                        <span>Nomor Resi: <strong class='text-primary'>" . esc($airwayBill) . "</strong></span>
+                        <span class='badge bg-light text-dark border'>" . strtoupper(esc($kodeKurir)) . "</span>
+                    </div>
+            ";
+
+            // Auto-update status transaksi jika paket sudah sampai / diterima
+            if ($isDelivered) {
+                $now = date('Y-m-d H:i:s');
+                if ((int)$trx->status < 3) {
+                    $this->func->updateData('transaksi', [
+                        'status'     => 3,
+                        'tgl_update' => $now,
+                        'selesai'    => $now
+                    ], ['id' => $trx->id]);
+                }
+
+                $penerima    = strtoupper(esc($summary->receiver ?? $data->receiver ?? '-'));
+                $tglDiterima = !empty($summary->date) ? esc($summary->date) : '-';
+
+                $html .= "
+                    <div class='alert alert-success p-2 mt-2 mb-0' style='font-size: 0.825rem;'>
+                        <div class='fw-bold text-success mb-1'><i class='fas fa-check-circle me-1'></i> PAKET TELAH DITERIMA</div>
+                        <div>Penerima: <strong>{$penerima}</strong></div>
+                        <div>Tanggal: {$tglDiterima}</div>
+                    </div>
+                ";
+            } else {
+                $statusText = strtoupper(esc($summary->status_description ?? $summary->status ?? 'PAKET SEDANG DALAM PENGIRIMAN'));
+                $html .= "
+                    <div class='alert alert-info p-2 mt-2 mb-0 fw-semibold text-info' style='font-size: 0.825rem;'>
+                        <i class='fas fa-truck me-1'></i> {$statusText}
+                    </div>
+                ";
+            }
+
+            $html .= "</div>"; // End Top Info
+
+            // Timeline Riwayat Manifest / Tracking
+            $html .= "
+                <div class='timeline-container mt-3' style='font-size: 0.825rem;'>
+                    <div class='row fw-bold bg-light py-2 px-1 border-bottom me-0 ms-0 mb-2'>
+                        <div class='col-4 col-md-3'>Tanggal</div>
+                        <div class='col-8 col-md-9'>Keterangan</div>
+                    </div>
+            ";
+
+            if (!empty($history)) {
+                foreach ($history as $m) {
+                    $tgl  = esc($m->date ?? $m->manifest_date ?? '-');
+                    $desc = esc($m->description ?? $m->manifest_description ?? '-');
+                    $city = esc($m->location ?? $m->city_name ?? '');
+
+                    $html .= "
+                        <div class='row py-2 px-1 border-bottom me-0 ms-0 text-muted'>
+                            <div class='col-4 col-md-3'><small>{$tgl}</small></div>
+                            <div class='col-8 col-md-9'>
+                                <div class='text-dark'>{$desc}</div>
+                                " . (!empty($city) ? "<small class='text-secondary'>[{$city}]</small>" : "") . "
+                            </div>
+                        </div>
+                    ";
+                }
+            } else {
+                $html .= "
+                    <div class='text-center py-3 text-muted'>
+                        Belum ada riwayat pergerakan paket.
+                    </div>
+                ";
+            }
+
+            $html .= "</div>";
+
+            return $this->response->setBody($html);
+        }
+
+        // Jika Nomor Resi Tidak Ditemukan / Gagal Dari API
+        $pesanGagal = esc($res->message ?? "Nomor resi tidak ditemukan. Silakan tunggu beberapa saat hingga status diperbarui oleh sistem ekspedisi.");
+
+        return $this->response->setBody("
+            <div class='p-3 text-center' style='font-size: 0.85rem;'>
+                <div class='mb-2'>
+                    Nomor Resi: <strong class='text-danger'>" . esc($airwayBill) . "</strong>
+                </div>
+                <div class='text-muted small'>
+                    {$pesanGagal}
+                </div>
+            </div>
+        ");
+    }
     
 }

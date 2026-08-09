@@ -9,6 +9,7 @@ class Admin extends AdminBaseController
     // Halaman Dashboard
     public function index()
     {
+        // $this->func->cekSession();
         // 🔒 CEK LOGIN DILAKUKAN DI SINI
         if ($this->data['adminId'] === 0) {
             return redirect()->to(base_url('admin/login'));
@@ -39,8 +40,6 @@ class Admin extends AdminBaseController
             return redirect()->to(base_url('admin'));
         }
 
-        session()->destroy();
-
         $data = $this->data;
 
         return view('admin/login', $data);
@@ -66,7 +65,7 @@ class Admin extends AdminBaseController
         if ($admin && password_verify($password, $admin->password)) {
             $session->set([
                 'isLoggedIn' => true,
-                'usrid'      => $admin->id,
+                'admin_id'   => $admin->id,
                 'username'   => $admin->username,
             ]);
 
@@ -100,5 +99,20 @@ class Admin extends AdminBaseController
         $data['menu'] = 2; 
 
         return view('admin/pesanan', $data);
+    }
+
+    public function logout()
+    {
+        $session = session();
+
+        // Hapus HANYA session milik Admin agar session Client/User di tab lain tidak ikut terhapus
+        $session->remove([
+            'isLoggedIn',
+            'admin_id',
+            'username'
+        ]);
+
+        // Redirect ke halaman login admin
+        return redirect()->to('admin/login');
     }
 }

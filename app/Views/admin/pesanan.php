@@ -313,6 +313,40 @@
       }
     });
   }
+
+  function lacakPaket(orderid) {
+    if (!orderid) return;
+
+    // Tampilkan Modal Lacak menggunakan JS API Bootstrap 5
+    var modalEl = document.getElementById('modalacak');
+    var modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modalInstance.show();
+
+    // Set tampilan loading
+    $("#lacakloader").addClass('d-flex').removeClass('d-none');
+    $("#lacakload").addClass('d-none').removeClass('d-block').html('');
+
+    // Request AJAX untuk memuat riwayat pengiriman
+    $.ajax({
+      url: "<?= site_url('admin/api/lacakiriman') ?>",
+      type: "GET",
+      data: { orderid: orderid },
+      success: function(htmlData) {
+        $("#lacakload").html(htmlData);
+        $("#lacakloader").addClass('d-none').removeClass('d-flex');
+        $("#lacakload").addClass('d-block').removeClass('d-none');
+      },
+      error: function(xhr, status, error) {
+        $("#lacakloader").addClass('d-none').removeClass('d-flex');
+        $("#lacakload").html(`
+          <div class="text-center py-4 text-danger">
+            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+            <p class="mb-0">Gagal memuat data pelacakan. Silakan coba lagi.</p>
+          </div>
+        `).addClass('d-block').removeClass('d-none');
+      }
+    });
+  }
 </script>
 
 <div class="modal fade" id="modaldetail" tabindex="-1" aria-labelledby="modaldetailLabel" aria-hidden="true">
@@ -346,6 +380,43 @@
           </button>
         </form>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Lacak Paket (Bootstrap 5) -->
+<div class="modal fade" id="modalacak" tabindex="-1" aria-labelledby="modalacakLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content shadow-sm border-0">
+      
+      <!-- Header Modal -->
+      <div class="modal-header py-2 px-3 bg-light">
+        <h6 class="modal-title fw-bold text-dark mb-0" id="modalacakLabel" style="font-size: 0.875rem;">
+          <i class="fas fa-shipping-fast text-primary me-1"></i> Lacak Paket Pesanan
+        </h6>
+        <!-- Tombol Close Bootstrap 5 -->
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="font-size: 0.75rem;"></button>
+      </div>
+
+      <!-- Body Modal -->
+      <div class="modal-body p-3" style="font-size: 0.85rem; min-height: 200px;">
+        
+        <!-- Loading Indicator (Ditampilkan saat AJAX memuat data) -->
+        <div id="lacakloader" class="d-none justify-content-center align-items-center flex-column py-5 text-muted">
+          <i class="fas fa-spinner fa-spin fa-2x text-primary mb-2"></i>
+          <span style="font-size: 0.8rem;">Memuat, tunggu sebentar...</span>
+        </div>
+
+        <!-- Container Output Lacak -->
+        <div id="lacakload"></div>
+
+      </div>
+
+      <!-- Footer Modal -->
+      <div class="modal-footer py-2 px-3 bg-light">
+        <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal" style="font-size: 0.775rem;">Tutup</button>
+      </div>
+
     </div>
   </div>
 </div>

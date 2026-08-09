@@ -72,12 +72,14 @@ $routes->group('', ['namespace' => 'App\Controllers\Client'], static function ($
 $routes->group('admin', ['namespace' => 'App\Controllers\Admin'], static function ($routes) {
   $routes->get('/', 'Admin::index');
   $routes->get('login', 'Admin::login');
+  $routes->get('logout', 'Admin::logout');
   $routes->get('pesanan', 'Admin::pesanan');
   $routes->post('auth', 'Admin::auth');
   $routes->post('api/pesanan', 'Api::pesanan');
   $routes->get('api/detailpesanan', 'Api::detailpesanan');
   $routes->get('api/cetakInvoice', 'Api::cetakInvoice');
   $routes->get('api/cetakLabel', 'Api::cetakLabel');
+  $routes->get('api/lacakiriman', 'Api::lacakiriman');
   $routes->post('api/updatepesanan', 'Api::updatepesanan');
   $routes->post('api/batalkanpesanan', 'Api::batalkanpesanan');
   $routes->post('api/inputresi', 'Api::inputresi');

@@ -7,6 +7,8 @@ class Home extends BaseController {
     public function index() {
         $data = $this->data;
 
+        // $this->func->cekSession();
+
         $jmlProdukPerKategori = $this->func->getJumlahProdukPerKategori();
         $data['jmlProdukPerKategori'] = [];
         foreach ($jmlProdukPerKategori as $item) {
@@ -228,7 +230,10 @@ class Home extends BaseController {
 
     public function signout()
     {
-        session()->destroy();
+        $session = session();
+
+        $session->remove('usrid');
+
         return redirect()->to('/signin');
     }
 
