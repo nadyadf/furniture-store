@@ -82,15 +82,14 @@ class Api extends AdminBaseController
 
           case 'batal':
           case 'dibatalkan':
-              // Status 4: Dibatalkan
-              $listPesanan = $this->func->getAdminTransactionsByStatus(4, $page, $cari);
+              $listPesanan = $this->func->getCanceledOrders($cari, $page);
               $data = [
                   'cancelledOrders' => $listPesanan,
                   'pager'           => $this->func->pager,
                   'page'            => $page,
                   'cari'            => $cari
               ];
-              $res = view('admin/pesananbatal', $data);
+              $res = view('admin/pesanan_canceled', $data);
               break;
 
           default:

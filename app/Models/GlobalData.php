@@ -3740,5 +3740,154 @@ class GlobalData extends Model
             'data'    => $resultData
         ];
     }
+
+    public function getCanceledOrders(string $search = '', int $page = 1, int $perPage = 10): array
+    {
+        // Hitung offset berdasarkan page & perPage
+        $page   = max(1, $page);
+        $offset = ($page - 1) * $perPage;
+
+        // 1. Cari user ID (usrid & usrid_temp) dari tabel alamat & profil berdasarkan keyword
+        $arrUsrId     = [-1];
+        $arrUsrIdTemp = [-1];
+
+        if (!empty($search)) {
+            // Cari di tabel alamat
+            $alamatResults = $this->db->table('alamat')
+                ->select('usrid, usrid_temp')
+                ->like('nama', $search)
+                ->orLike('alamat', $search)
+                ->orLike('no_hp', $search)
+                ->get()->getResult();
+
+            foreach ($alamatResults as $l) {
+                if ((int)$l->usrid > 0) {
+                    $arrUsrId[] = (int)$l->usrid;
+                }
+                if ((int)$l->usrid_temp > 0) {
+                    $arrUsrIdTemp[] = (int)$l->usrid_temp;
+                }
+            }
+
+            // Cari di tabel profil (khusus member)
+            $profilResults = $this->db->table('profil')
+                ->select('usrid')
+                ->like('nama', $search)
+                ->orLike('no_hp', $search)
+                ->get()->getResult();
+
+            foreach ($profilResults as $p) {
+                if ((int)$p->usrid > 0) {
+                    $arrUsrId[] = (int)$p->usrid;
+                }
+            }
+
+            $arrUsrId     = array_unique($arrUsrId);
+            $arrUsrIdTemp = array_unique($arrUsrIdTemp);
+        }
+
+        // 2. Query Utama Tabel Transaksi (Status = 4 / Pesanan Dibatalkan)
+        $builder = $this->db->table('transaksi t');
+
+        // Filter Khusus Status = 4 (Dibatalkan)
+        $builder->where('t.status', 4);
+
+        // Filter Pencarian Keyword
+        if (!empty($search)) {
+            $builder->groupStart()
+                ->like('t.orderid', $search)
+                ->orLike('t.resi', $search)
+                ->orWhereIn('t.usrid', $arrUsrId)
+                ->orWhereIn('t.usrid_temp', $arrUsrIdTemp)
+            ->groupEnd();
+        }
+
+        // Hitung total baris sebelum limit/offset untuk pagination AJAX
+        $totalRows = $builder->countAllResults(false);
+
+        // Ambil data dengan Limit & Offset
+        $transaksiList = $builder->orderBy('t.id', 'DESC')
+            ->limit($perPage, $offset)
+            ->get()
+            ->getResult();
+
+        // 3. Relasikan Data & Format Tampilan
+        $resultData = [];
+
+        foreach ($transaksiList as $trx) {
+            // Format Tanggal Transaksi & Batal
+            $trx->tgl_formatted   = !empty($trx->tgl) ? $this->ubahTgl("d M Y H:i", $trx->tgl) : '-';
+            $trx->batal_formatted = !empty($trx->batal) ? $this->ubahTgl("d M Y H:i", $trx->batal) : '-';
+
+            // A. Data Pembayaran berdasarkan idbayar
+            $idBayar    = (int)($trx->idbayar ?? 0);
+            $pembayaran = ($idBayar > 0) ? $this->getPembayaran($idBayar) : null; 
+            
+            $invoiceNo  = $pembayaran ? ($pembayaran->invoice ?? $pembayaran->no_invoice ?? '-') : '-';
+            $tglBayar   = ($pembayaran && !empty($pembayaran->tgl)) ? $this->ubahTgl("d M Y H:i", $pembayaran->tgl) : '-';
+
+            // B. Profil Pembeli
+            $isMember = ((int)$trx->usrid > 0);
+            $profil   = $isMember
+                ? $this->getProfil($trx->usrid, "semua", "usrid")
+                : $this->getUserTemp($trx->usrid_temp);
+
+            // C. Alamat Pembeli & Kurir (Cek Produk Digital / Fisik)
+            $idAlamat = (int)($trx->alamat ?? 0);
+            $alamat   = ($idAlamat > 0) ? $this->getAlamatById($idAlamat) : null;
+
+            $namaProfil = esc($profil->nama ?? 'Tamu');
+            $namaAlamat   = esc($alamat->nama ?? '-');
+            $nohpAlamat   = esc($alamat->nohp ?? $alamat->no_hp ?? '-');
+            $detailAlamat = esc($alamat->alamat ?? '-');
+
+            if ($isMember) {
+                $pembeliHtml = "<span class='text-primary font-weight-bold'>[" . $namaProfil . "]</span>";
+            } else {
+                $pembeliHtml = "<span class='text-danger font-weight-bold'>[" . $namaProfil . "] <span class='badge bg-danger px-2 py-1 my-1'>non member</span></span>";
+            }
+            $pembeliHtml .= "<div><small>" . $namaAlamat . " (" . $nohpAlamat . ")</small></div>";
+            $pembeliHtml .= "<small class='text-muted d-block'><i>" . $detailAlamat . "</i></small>";
+
+            // Format Kurir
+            $namaKurir = $this->getKurir($trx->kurir, 'nama');
+            $namaPaket = $this->getPaket($trx->paket, 'nama');
+            $kurirHtml = "<div>" . strtoupper($namaKurir) . "</div><small class='text-primary'>" . strtoupper($namaPaket) . "</small>";
+
+            // D. Badge Tambahan (COD, Dropship, PO)
+            $codHtml = "";
+            if (($trx->cod ?? 0) == 1) {
+                $codHtml .= "<div class='mt-1'><span class='badge bg-warning text-white fw-normal'>Bayar Ditempat (COD)</span></div>";
+            }
+
+            // E. Format Gudang Asal
+            $gudang     = $this->getGudang($trx->gudang);
+            $namagudang = $gudang ? $gudang->nama : "PUSAT";
+
+            // F. Ambil Item Produk Transaksi
+            $produkList = $this->getTransaksiProdukByIdTransaksi($trx->id);
+
+            // Satukan properti ke object transaksi
+            $trx->pembayaran      = $pembayaran;
+            $trx->invoice         = $invoiceNo;
+            $trx->tgl_bayar       = $tglBayar;
+            $trx->cod_html        = $codHtml;
+            $trx->pembeli_html    = $pembeliHtml;
+            $trx->kurir_html      = $kurirHtml;
+            $trx->nama_gudang     = $namagudang;
+            $trx->alamat_obj      = $alamat;
+            $trx->profil_obj      = $profil;
+            $trx->produk          = $produkList;
+
+            $resultData[] = $trx;
+        }
+
+        return [
+            'total'   => $totalRows,
+            'page'    => $page,
+            'perPage' => $perPage,
+            'data'    => $resultData
+        ];
+    }
 }
 
