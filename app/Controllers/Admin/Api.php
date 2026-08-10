@@ -70,14 +70,14 @@ class Api extends AdminBaseController
 
           case 'selesai':
               // Status 3: Selesai
-              $listPesanan = $this->func->getAdminTransactionsByStatus(3, $page, $cari);
+              $listPesanan = $this->func->getCompletedOrders($cari, $page);
               $data = [
                   'completedOrders' => $listPesanan,
                   'pager'           => $this->func->pager,
                   'page'            => $page,
                   'cari'            => $cari
               ];
-              $res = view('admin/pesananselesai', $data);
+              $res = view('admin/pesanan_completed', $data);
               break;
 
           case 'batal':
