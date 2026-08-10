@@ -2916,7 +2916,6 @@ class GlobalData extends Model
                 ->select('usrid, usrid_temp')
                 ->like('nama', $search)
                 ->orLike('alamat', $search)
-                ->orLike('nohp', $search)
                 ->orLike('no_hp', $search)
                 ->get()->getResult();
 
@@ -2997,7 +2996,7 @@ class GlobalData extends Model
             // D. Ekstrak nama, nohp, & alamat murni
             $namaProfil   = esc($profil->nama ?? 'Tamu');
             $namaAlamat   = esc($alamat->nama ?? '-');
-            $nohpAlamat   = esc($alamat->no_hp ?? $alamat->nohp ?? '-');
+            $nohpAlamat   = esc($alamat->no_hp ?? '-');
             $detailAlamat = esc($alamat->alamat ?? '-');
 
             if ($isMember) {
@@ -3442,7 +3441,6 @@ class GlobalData extends Model
                 ->select('usrid, usrid_temp')
                 ->like('nama', $search)
                 ->orLike('alamat', $search)
-                ->orLike('nohp', $search)
                 ->orLike('no_hp', $search)
                 ->get()->getResult();
 
@@ -3527,7 +3525,7 @@ class GlobalData extends Model
             // D. Format Informasi Pembeli (HTML)
             $namaProfil   = esc($profil->nama ?? 'Tamu');
             $namaAlamat   = esc($alamat->nama ?? '-');
-            $nohpAlamat   = esc($alamat->no_hp ?? $alamat->nohp ?? '-');
+            $nohpAlamat   = esc($alamat->no_hp ?? '-');
             $detailAlamat = esc($alamat->alamat ?? '-');
 
             if ($isMember) {
