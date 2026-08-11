@@ -20,6 +20,9 @@ $routes->group('', ['namespace' => 'App\Controllers\Client'], static function ($
 
     $routes->set404Override('Home::_404');
 
+    $routes->get('cek-pesanan', 'TrackPesanan::index');
+    $routes->post('cek-pesanan/cek', 'TrackPesanan::cek');
+
     $routes->get('kategori/(:segment)', 'Kategori::index/$1');
     $routes->get('produk/(:segment)', 'Produk::index/$1');
     $routes->get('page/(:segment)', 'Page::index/$1');

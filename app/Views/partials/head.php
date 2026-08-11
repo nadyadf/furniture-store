@@ -44,7 +44,7 @@
                   </a>
                   <ul class="dropdown-menu shadow">
                     <li>
-                      <a class="dropdown-item" href="<?=site_url('cekpesanan')?>">
+                      <a class="dropdown-item" href="<?=site_url('cek-pesanan')?>">
                         <i class="fas fa-search me-2 text-primary"></i> Cek Status Pesanan
                       </a>
                     </li>

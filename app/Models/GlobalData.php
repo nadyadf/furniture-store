@@ -27,6 +27,11 @@ class GlobalData extends Model
          $this->db = Database::connect();
     }
 
+    function clean_string(string $string): string
+    {
+        return preg_replace('/[^A-Za-z0-9\-]/', ' ', $string);
+    }
+
     public function demo()
     {
         return false;
