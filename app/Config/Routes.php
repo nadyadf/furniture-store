@@ -23,6 +23,9 @@ $routes->group('', ['namespace' => 'App\Controllers\Client'], static function ($
     $routes->get('cek-pesanan', 'TrackPesanan::index');
     $routes->post('cek-pesanan/cek', 'TrackPesanan::cek');
 
+    $routes->get('konfirmasi', 'Konfirmasi::index');
+    $routes->post('konfirmasi/kirim', 'Konfirmasi::kirim');
+
     $routes->get('kategori/(:segment)', 'Kategori::index/$1');
     $routes->get('produk/(:segment)', 'Produk::index/$1');
     $routes->get('page/(:segment)', 'Page::index/$1');

@@ -2818,7 +2818,7 @@ class GlobalData extends Model
             $bukti = $konfirmasi->bukti ?? '';
             $tglFormatted = date('d/m/Y H:i', strtotime($r->tgl));
             if ($bukti) {
-                $tglFormatted .= "<br/><a href='javascript:void(0)' onclick='bukti(\"" . base_url("konfirmasi/" . $bukti) . "\")'>&raquo; Lihat Bukti Transfer</a>";
+                $tglFormatted .= "<br/><a href='javascript:void(0)' onclick='bukti(\"" . base_url("cdn/konfirmasi/" . $bukti) . "\")'>&raquo; Lihat Bukti Transfer</a>";
             }
 
             // 3. Profil & Alamat (Object)
