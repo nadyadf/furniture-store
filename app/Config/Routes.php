@@ -80,6 +80,12 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin'], static functio
   $routes->get('login', 'Admin::login');
   $routes->get('logout', 'Admin::logout');
   $routes->get('pesanan', 'Admin::pesanan');
+  $routes->get('slider', 'Admin::slider');
+  $routes->get('sliderform', 'Admin::sliderform');
+  $routes->get('sliderform/(:segment)', 'Admin::sliderform/$1');
+  $routes->post('sliderform/(:segment)', 'Admin::sliderform/$1');
+  $routes->post('sliderform', 'Admin::sliderform');
+  $routes->post('hapus_slider', 'Admin::hapusslider');
   $routes->post('auth', 'Admin::auth');
   $routes->post('api/pesanan', 'Api::pesanan');
   $routes->get('api/detailpesanan', 'Api::detailpesanan');

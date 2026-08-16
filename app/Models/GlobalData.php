@@ -3894,5 +3894,49 @@ class GlobalData extends Model
             'data'    => $resultData
         ];
     }
+    public function getPromoData(int $page = 1, int $limit = 10, string $orderBy = 'id', string $direction = 'DESC'): array
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('promo');
+
+        $totalRows = $builder->countAllResults(false);
+
+        $page   = ($page < 1) ? 1 : $page;
+        $offset = ($page - 1) * $limit;
+
+        $results = $builder->orderBy($orderBy, $direction)
+                        ->get($limit, $offset)
+                        ->getResult();
+
+        $pager = \Config\Services::pager();
+        $this->pager = $pager->makeLinks($page, $limit, $totalRows, 'bootstrap_full');
+
+        $formattedData = [];
+        $now = date("YmdHis");
+
+        foreach ($results as $r) {
+            // 1. Simpan variabel lokal YmdHis KHUSUS untuk pengecekan status
+            $mulai   = $this->ubahTgl("YmdHis", $r->tgl);
+            $selesai = $this->ubahTgl("YmdHis", $r->tgl_selesai);
+
+            // 3. Penentuan Badge Status
+            $status = ($r->status == 1 && $mulai <= $now && $selesai >= $now) 
+                ? "<span class='badge bg-success'>AKTIF</span>" 
+                : "<span class='badge bg-danger'>NONAKTIF</span>";
+
+            // 4. Ubah variabel $r->tgl & $r->tgl_selesai langsung ke format tampilan "d/m/Y H:i"
+            $r->tgl         = $this->ubahTgl("d/m/Y H:i", $r->tgl);
+            $r->tgl_selesai = $this->ubahTgl("d/m/Y H:i", $r->tgl_selesai);
+
+            // Assign badge ke object
+            $r->status_badge = $status;
+
+            $formattedData[] = $r;
+        }
+
+        return [
+            'data'  => $formattedData,
+        ];
+    }
 }
 

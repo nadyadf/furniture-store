@@ -19,4 +19,8 @@
     });
   }
 
+  function updateToken(token){
+      $("#tokens, .tokens").val(token);
+  }
+
 </script>
