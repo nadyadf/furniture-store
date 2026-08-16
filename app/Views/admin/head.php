@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
   <title><?= $set->nama ?> Dashboard Management</title>
-  <link rel="shortcut icon" type="image/png" href="<?= base_url("cdn/assets/img/" . $set->favicon) ?>"/>
+  <link rel="shortcut icon" type="image/png" href="<?= base_url('cdn/assets/img/' . esc($set->favicon ?? 'favicon.png')) ?>"/>
   <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport' />
   
   <!-- Fonts (Poppins) -->
