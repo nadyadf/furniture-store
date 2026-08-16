@@ -257,7 +257,7 @@
           </li>
           
           <li class="nav-title">MARKETING</li>
-          <li class="nav-item <?= (isset($menu) && $menu == 5) ? 'active' : '' ?>">
+          <li class="nav-item <?= (isset($menu) && $menu == 3) ? 'active' : '' ?>">
             <a href="<?= site_url('admin/slider') ?>">
               <i class="fas fa-images text-info"></i>
               <p>Home Slider</p>
@@ -265,19 +265,19 @@
           </li>
 
           <li class="nav-title">LAPORAN</li>
-          <li class="nav-item <?= (isset($menu) && $menu == 14) ? 'active' : '' ?>">
+          <li class="nav-item <?= (isset($menu) && $menu == 4) ? 'active' : '' ?>">
             <a href="<?= site_url('admin/laporantransaksi') ?>">
               <i class="fas fa-chart-area text-primary"></i>
               <p>Transaksi</p>
             </a>
           </li>
-          <li class="nav-item <?= (isset($menu) && $menu == 15) ? 'active' : '' ?>">
+          <li class="nav-item <?= (isset($menu) && $menu == 5) ? 'active' : '' ?>">
             <a href="<?= site_url('admin/laporanuser') ?>">
               <i class="fas fa-user-clock text-primary"></i>
               <p>Transaksi User</p>
             </a>
           </li>
-          <li class="nav-item <?= (isset($menu) && $menu == 19) ? 'active' : '' ?>">
+          <li class="nav-item <?= (isset($menu) && $menu == 6) ? 'active' : '' ?>">
             <a href="<?= site_url('admin/laporanproduk') ?>">
               <i class="fas fa-gifts text-primary"></i>
               <p>Penjualan Produk</p>
@@ -285,13 +285,13 @@
           </li>
 
           <li class="nav-title">DATA PRODUK</li>
-          <li class="nav-item <?= (isset($menu) && $menu == 6) ? 'active' : '' ?>">
+          <li class="nav-item <?= (isset($menu) && $menu == 7) ? 'active' : '' ?>">
             <a href="<?= site_url('admin/produk') ?>">
               <i class="fas fa-boxes text-success"></i>
               <p>Daftar Produk</p>
             </a>
           </li>
-          <li class="nav-item <?= (isset($menu) && $menu == 7) ? 'active' : '' ?>">
+          <li class="nav-item <?= (isset($menu) && $menu == 8) ? 'active' : '' ?>">
             <a href="<?= site_url('admin/kategori') ?>">
               <i class="fas fa-clipboard-list text-primary"></i>
               <p>Kategori Produk</p>
@@ -299,7 +299,7 @@
           </li>
 
           <li class="nav-title">DATA USER</li>
-          <li class="nav-item <?= (isset($menu) && $menu == 10) ? 'active' : '' ?>">
+          <li class="nav-item <?= (isset($menu) && $menu == 9) ? 'active' : '' ?>">
             <a href="<?= site_url('admin/usermanager') ?>">
               <i class="fas fa-users text-info"></i>
               <p>User</p>
@@ -307,30 +307,25 @@
           </li>
           
           <li class="nav-title">PENGATURAN</li>
-          <li class="nav-item <?= (isset($menu) && $menu == 24) ? 'active' : '' ?>">
+          <li class="nav-item <?= (isset($menu) && $menu == 10) ? 'active' : '' ?>">
             <a href="<?= site_url('gudang') ?>">
               <i class="fas fa-warehouse text-primary"></i>
               <p>Lokasi Gudang</p>
             </a>
           </li>
-          <li class="nav-item <?= (isset($menu) && $menu == 20) ? 'active' : '' ?>">
+          <li class="nav-item <?= (isset($menu) && $menu == 11) ? 'active' : '' ?>">
             <a href="<?= site_url('admin/paketkurir') ?>">
               <i class="fas fa-shipping-fast text-success"></i>
               <p>Custom Kurir</p>
             </a>
           </li>
           
-          <?php 
-          $session = session();
-          if ($session->get('level') == 2) { 
-          ?>
-            <li class="nav-item <?= (isset($menu) && $menu == 12) ? 'active' : '' ?>">
-              <a href="<?= site_url('admin/pengaturan') ?>">
-                <i class="fas fa-cogs text-primary"></i>
-                <p>Pengaturan</p>
-              </a>
-            </li>
-          <?php } ?>
+          <li class="nav-item <?= (isset($menu) && $menu == 12) ? 'active' : '' ?>">
+            <a href="<?= site_url('admin/pengaturan') ?>">
+              <i class="fas fa-cogs text-primary"></i>
+              <p>Pengaturan</p>
+            </a>
+          </li>
 
           <li class="nav-item">
             <a href="javascript:void(0)" onclick="logout()">
