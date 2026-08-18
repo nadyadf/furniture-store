@@ -92,10 +92,12 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin'], static functio
   $routes->get('api/cetakInvoice', 'Api::cetakInvoice');
   $routes->get('api/cetakLabel', 'Api::cetakLabel');
   $routes->get('api/lacakiriman', 'Api::lacakiriman');
+  $routes->get('laporantransaksi', 'Admin::laporantransaksi');
   $routes->post('api/updatepesanan', 'Api::updatepesanan');
   $routes->post('api/batalkanpesanan', 'Api::batalkanpesanan');
   $routes->post('api/inputresi', 'Api::inputresi');
   $routes->post('api/terimapesanan', 'Api::terimapesanan');
+  $routes->post('laporantransaksi', 'Admin::laporantransaksi');
 });
 
 

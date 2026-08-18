@@ -278,4 +278,126 @@ class Admin extends AdminBaseController
             'token'   => csrf_hash()
         ]);
     }
+
+    public function laporantransaksi()
+    {
+        // 1. Cek Sesi Login bawaan CI4
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('admin/login');
+        }
+
+        $data = $this->data;
+
+        $request = \Config\Services::request();
+
+        // 2. Cek Parameter Query String ('load')
+        if ($request->getGet('load') !== null) {
+            // 1. Ambil data POST (Gudang & Tanggal Periode)
+            $gudangInput = $request->getPost('gudang');
+            $tglMulai    = $request->getPost('tglmulai');
+            $tglSelesai  = $request->getPost('tglselesai');
+
+            $gudangInfo  = '';
+            $periodeInfo = '';
+
+            // 2. Format Info Periode Tanggal
+            if (!empty($tglMulai) && !empty($tglSelesai)) {
+                $tglMulaiFormatted  = $this->func->ubahTgl("d/m/Y", $tglMulai);
+                $tglSelesaiFormatted = $this->func->ubahTgl("d/m/Y", $tglSelesai);
+                
+                $periodeInfo = '<div class="text-secondary small mb-3">'
+                            . '<i class="fas fa-calendar-alt me-1"></i> Periode: <strong>' 
+                            . esc($tglMulaiFormatted) . '</strong> s/d <strong>' . esc($tglSelesaiFormatted) . '</strong>'
+                            . '</div>';
+            }
+
+            // 3. Format Info Gudang
+            if (isset($gudangInput) && $gudangInput !== '' && $gudangInput !== 'semua') {
+
+                if ((int)$gudangInput > 0) {
+                    $gudang   = $this->func->getGudang($gudangInput, "semua");
+                    $kota     = $this->func->getKabupaten($gudang->idkab);
+                    $namaKota = $kota ? ($kota->tipe . " " . $kota->nama) : '';
+                    
+                    $gudangInfo = '<div class="fs-5 fw-semibold mb-1 d-flex align-items-center justify-content-center gap-2">'
+                                . '<i class="fas fa-map-marker-alt text-danger"></i> '
+                                . esc(strtoupper($gudang->nama)) . ' - ' . esc($namaKota)
+                                . '</div>';
+                } else {
+                    $set      = $this->func->globalset("semua");
+                    $kota     = $this->func->getKabupaten($set->kota);
+                    $namaKota = $kota ? ($kota->tipe . " " . $kota->nama) : '';
+                    
+                    $gudangInfo = '<div class="fs-5 fw-semibold mb-1 d-flex align-items-center justify-content-center gap-2">'
+                                . '<i class="fas fa-map-marker-alt text-danger"></i> PUSAT - ' . esc($namaKota)
+                                . '</div>';
+                }
+            }
+
+            // 4. Gabungkan HTML Header (Gudang & Periode) dengan View List
+            $headerHtml = '<div class="mb-3 border-bottom pb-2">' . $gudangInfo . $periodeInfo . '</div>';
+
+            // 1. Ambil Parameter Filter dari Request CI4
+            $cari     = $request->getPost('cari') ?? '';
+            $orderby  = $data['orderby'] ?? 'id';
+            $perpage  = 10;
+
+            $tglMulai   = $request->getPost('tglmulai') ?? date('Y-m-d');
+            $tglSelesai = $request->getPost('tglselesai') ?? date('Y-m-d');
+            $status     = $request->getPost('status');
+            $gudang     = $request->getPost('gudang');
+            $jenis      = $request->getPost('jenis');
+
+            // 2. Buat Kondisi Dasar Tanggal
+            $where       = "tgl BETWEEN '{$tglMulai} 00:00:00' AND '{$tglSelesai} 23:59:59'";
+            $whereupdate = "tgl_update BETWEEN '{$tglMulai} 00:00:00' AND '{$tglSelesai} 23:59:59'";
+
+            // 3. Filter berdasarkan Status Transaksi
+            if ($status !== null && $status !== '') {
+                $status = (int)$status;
+
+                if ($status === 1) {
+                    $where = "status > 0 AND status < 4 AND ({$where})";
+                } elseif ($status === 2) {
+                    $where = "status = 0 AND ({$where})";
+                } elseif ($status === 3) {
+                    $where = "status = 1 AND ({$whereupdate})";
+                } elseif ($status === 4) {
+                    $where = "status = 2 AND ({$whereupdate})";
+                } elseif ($status === 5) {
+                    $where = "status = 3 AND ({$whereupdate})";
+                } elseif ($status === 6) {
+                    $where = "status = 4 AND ({$whereupdate})";
+                }
+            }
+
+            // 4. Filter berdasarkan Gudang
+            if (isset($gudang) && $gudang !== '' && $gudang !== 'semua') {
+                $gudangEscaped = db_connect()->escape($gudang);
+
+                if ($status !== null && (int)$status >= 1) {
+                    $where = "gudang = {$gudangEscaped} AND " . $where;
+                } else {
+                    $where = "gudang = {$gudangEscaped} AND (" . $where . ")";
+                }
+
+            }
+
+            $trx = $this->func->getTransaksiByWhere($where);
+
+
+            $res = view('admin/laporan_transaksi_list', ['headerHtml'=>$headerHtml,'trx'=>$trx]);
+
+            return $this->response->setJSON([
+                'result' => $res,
+                'token'  => csrf_hash()
+            ]);
+        }
+
+        $data['menu'] = 4;
+        $data['gudang_list'] = $this->func->getDaftarGudang();
+
+        // 3. Render Beberapa View (Layouting CI4)
+        return view('admin/laporan_transaksi', $data);
+    }
 }

@@ -3938,5 +3938,114 @@ class GlobalData extends Model
             'data'  => $formattedData,
         ];
     }
+
+    public function getDaftarGudang(): array
+    {
+        $db = \Config\Database::connect();
+
+        return $db->table('gudang g')
+            ->select('g.*, CONCAT(k.tipe, " ", k.nama) AS namakota')
+            ->join('kab k', 'k.id = g.idkab', 'left')
+            ->get()
+            ->getResult();
+    }
+
+    public function getTransaksiByWhere($where): array
+    {
+        $db = \Config\Database::connect();
+
+        // 1. Query dasar transaksi
+        $listTransaksi = $db->table('transaksi')
+                            ->where($where)
+                            ->orderBy('status', 'ASC')
+                            ->get()
+                            ->getResult();
+
+        $data           = [];
+        $totalAkumulasi = 0;
+        $totalOngkir    = 0;
+
+        // 2. Looping & olah data per transaksi
+        foreach ($listTransaksi as $r) {
+            // Cek data konfirmasi pembayaran
+            $kon = $db->table('konfirmasi')
+                    ->select('id')
+                    ->where('idbayar', $r->idbayar)
+                    ->get()
+                    ->getResult();
+
+            // Data pembayaran & perhitungan total
+            $bayar = $this->getPembayaran($r->idbayar, "semua");
+
+            if ($bayar) {
+                $totalAkumulasi += ($bayar->total - $bayar->kode_bayar);
+            }
+            $totalOngkir += ($r->ongkir ?? 0);
+
+            // Status transaksi
+            $statusText = match ((int)$r->status) {
+                0       => "Belum Dibayar",
+                1       => "Perlu Dikirim",
+                2       => "Sedang Dikirim",
+                3       => "Selesai",
+                4       => "Dibatalkan",
+                default => "-"
+            };
+
+            // Metode pembayaran & format nominal
+            $metode = "";
+            if (isset($bayar->metode_bayar)) {
+                switch ((int)$bayar->metode_bayar) {
+                    case 1:
+                        $metode = "Bayar Ditempat (COD)";
+                        break;
+                    case 2:
+                        $metode = "Transfer";
+                        break;
+                }
+            }
+
+            $metodes = $metode;
+            if (isset($bayar->metode) && (int)$bayar->metode === 2 && ($bayar->transfer ?? 0) > 0) {
+                $transferFormatted = "Rp " . number_format($bayar->transfer ?? 0, 0, ',', '.');
+
+                $metodes = $metode . ": " . $transferFormatted;
+            }
+
+            // Nama pembeli (Member / Non-Member)
+            if ((int)$r->usrid > 0) {
+                $namaUser = $this->getProfil($r->usrid, "nama", "usrid");
+                $nama     = esc(strtoupper(strtolower($namaUser)));
+            } else {
+                $namaUser = $this->getUserTemp($r->usrid_temp)->nama;
+                $nama     = esc(strtoupper(strtolower($namaUser))) . " <i class='text-danger ms-2'>(non member)</i>";
+            }
+
+            // Sematkan atribut yang sudah diproses ke dalam objek item
+            $tglTransaksi = !empty($r->tgl) ? date('d/m/Y H:i', strtotime($r->tgl)) : '-';
+            $totalTransaksi = number_format($bayar->total-$bayar->kode_bayar, 0, ',', '.');
+            $ongkir = number_format($r->ongkir, 0, ',', '.');
+
+            $r->konfirmasi   = $kon;
+            $r->bayar        = $bayar;
+            $r->status_text  = $statusText;
+            $r->metode_text  = $metodes;
+            $r->nama_pembeli = $nama;
+            $r->tgl_formatted = $tglTransaksi;
+            $r->total_transaksi = $totalTransaksi;
+            $r->ongkir_formatted = $ongkir;
+
+            $data[] = $r;
+        }
+
+        // Return array data list transaksi beserta total akumulasi
+        return [
+            'list'             => $data,
+            'total'            => $totalAkumulasi,
+            'total_ongkir'     => $totalOngkir,
+            'total_formatted'  => "Rp" . number_format($totalAkumulasi, 0, ',', '.'),
+            'ongkir_formatted' => "Rp" . number_format($totalOngkir, 0, ',', '.')
+        ];
+    }
 }
 
