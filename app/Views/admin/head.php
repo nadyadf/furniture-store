@@ -6,6 +6,7 @@
   <title><?= $set->nama ?> Dashboard Management</title>
   <link rel="shortcut icon" type="image/png" href="<?= base_url('cdn/assets/img/' . esc($set->favicon ?? 'favicon.png')) ?>"/>
   <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport' />
+  <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
   
   <!-- Fonts (Poppins) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,6 +24,22 @@
   <!-- Chartist JS CDN (Wajib ditaruh sebelum script grafik dijalankan) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chartist/0.11.4/chartist.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chartist-plugin-tooltip/0.0.11/chartist-plugin-tooltip.min.js"></script>
+
+  <?php if (isset($tiny) && $tiny === true): ?>
+    <!-- TinyMCE CDN -->
+    <script src="https://cdn.tiny.cloud/1/f3q96btvm5j3drd14wf1r7z8ci4f4vxlhs8se07ky596ng4l/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        tinymce.init({
+          selector: 'textarea#deskripsi', // Sesuaikan ID textarea Anda
+          height: 350,
+          menubar: false,
+          plugins: 'lists link code table',
+          toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | bullist numlist | link table | code'
+        });
+      });
+    </script>
+  <?php endif; ?>
   
   <!-- SweetAlert2 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

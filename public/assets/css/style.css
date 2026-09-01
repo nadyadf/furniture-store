@@ -1140,3 +1140,116 @@ body {
 .table-responsive {
   overflow: visible !important;
 }
+
+/* UPLOAD FOTO */
+.uploadfotodivider{
+	display: block;
+	overflow: hidden;
+}
+.uploadfoto{
+	float: left;
+	margin-right: 10px;
+}
+.form-uploadfoto{
+	border: 1px dashed #ddd;
+	width: 120px;
+	height: 120px;
+	position: relative;
+	background: #fff;
+}
+.form-uploadfoto:Hover{
+	cursor: pointer;
+	border-color: #aaa;
+}
+.form-uploadfoto input[type=file]{
+	display: none;
+}
+.form-uploadfoto img{
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 40px;
+	margin: -20px 0 0 -20px;
+	transition: 0.3s ease-out;
+}
+.form-uploadfoto:Hover > img{
+	width: 50px;
+	margin: -25px 0 0 -25px;
+}
+.uploadfoto-result{
+	margin: 0;
+	float:left;
+}
+.uploadfoto-item{
+	border: 1px solid #ccc;
+	width: 120px;
+	height: 120px;
+	position: relative;
+	display: inline-block;
+	margin: 0 10px 0 0;
+	overflow: hidden;
+}
+.uploadfoto-item img{
+	vertical-align: middle;
+	max-width: 120%;
+	max-height: 120%;
+	position: absolute;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.uploadfoto-item .jadiutama{
+	padding: 3px;
+	width: 50%;
+	margin: 0;
+	position: absolute;
+	bottom: 0;
+	left:0;
+	border: none;
+	font-weight: normal;
+	text-decoration: none;
+	color: #fff;
+	background: #27ae60;
+	font-size: 12px;
+}
+.uploadfoto-item .jadiutama:Hover{
+	cursor: pointer;
+	background: #31d878;
+}
+.uploadfoto-item .hapus{
+	background: #e74c3c;
+	color: #fff;
+	padding: 3px;
+	width: 50%;
+	margin: 0;
+	position: absolute;
+	bottom: 0;
+	right:0;
+	border: none;
+	font-weight: normal;
+	text-decoration: none;
+	font-size: 12px;
+}
+.uploadfoto-item .hapus:Hover{
+	cursor: pointer;
+	background: #ff5f4f;
+}
+.uploadfoto-item .button-full{
+	width: 100%;
+}
+.uploadfoto-item .utama{
+	padding: 3px;
+	border: none;
+	font-weight: normal;
+	text-decoration: none;
+	width: 100%;
+	position: absolute;
+	bottom: 0;
+}
+.uploadfoto-item button[disabled]{
+	background: #fff;
+	font-size: 80%;
+}
+.color-wrap{
+	padding: 40px;
+}

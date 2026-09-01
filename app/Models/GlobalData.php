@@ -615,8 +615,11 @@ class GlobalData extends Model
 
     public function getProdukVariasi($idproduk)
     {
-        return $this->db->table('produk_variasi')
-            ->where('idproduk', $idproduk)
+        return $this->db->table('produk_variasi pv')
+            ->select('pv.*, vw.nama as nama_warna')
+            ->join('variasi_warna vw', 'vw.id = pv.idwarna', 'left')
+            ->where('pv.idproduk', $idproduk)
+            ->orderBy('pv.idwarna', 'ASC')
             ->get()
             ->getResult();
     }
@@ -1832,18 +1835,56 @@ class GlobalData extends Model
         return $this->db->insertID();
     }
 
-    public function deleteData(string $table, $value, string $field = 'id'): bool
+    public function deleteData(string $table, $where = null, string $field = 'id', array $whereNotIn = []): bool
     {
-        return $this->db->table($table)
-            ->where($field, $value)
-            ->delete();
+        $builder = $this->db->table($table);
+
+        // 1. Handling WHERE
+        if (is_array($where)) {
+            if (!empty($where)) {
+                $builder->where($where);
+            }
+        } elseif ($where !== null) {
+            // Kompatibilitas untuk pemanggilan lama: deleteData('tabel', $id, 'id')
+            $builder->where($field, $where);
+        }
+
+        // 2. Handling WHERE NOT IN
+        if (!empty($whereNotIn)) {
+            foreach ($whereNotIn as $column => $values) {
+                if (is_array($values) && !empty($values)) {
+                    $builder->whereNotIn($column, $values);
+                }
+            }
+        }
+
+        // Pengaman: Jangan hapus jika tidak ada kriteria kondisi sama sekali
+        if (empty($where) && $where !== 0 && $where !== '0' && empty($whereNotIn)) {
+            return false;
+        }
+
+        return $builder->delete();
     }
 
     public function updateData(string $table, array $data, array $conditions): bool
     {
-        return $this->db->table($table)
-            ->where($conditions)
-            ->update($data);
+        if (empty($data) || empty($conditions)) {
+            return false;
+        }
+
+        $builder = $this->db->table($table);
+
+        foreach ($conditions as $field => $value) {
+            if (is_array($value)) {
+                // Jika nilainya array, gunakan whereIn
+                $builder->whereIn($field, $value);
+            } else {
+                // Jika nilai tunggal, gunakan where biasa
+                $builder->where($field, $value);
+            }
+        }
+
+        return $builder->update($data);
     }
 
     public function getProfil($profileId, string $field = 'semua', string $searchBy = 'id')
@@ -1873,9 +1914,14 @@ class GlobalData extends Model
         return $emptyProfile;
     }
 
-    public function getData(string $table, $value, string $searchBy = 'id', bool $single = true)
+    public function getData(string $table, $value, string $searchBy = 'id', bool $single = true, ?string $orderBy = null, string $direction = 'ASC')
     {
         $builder = $this->db->table($table)->where($searchBy, $value);
+
+        // Terapkan orderBy jika opsi tersebut diisi
+        if (!empty($orderBy)) {
+            $builder->orderBy($orderBy, $direction);
+        }
 
         if ($single) {
             $row = $builder->get(1)->getRow();
@@ -3946,6 +3992,7 @@ class GlobalData extends Model
         return $db->table('gudang g')
             ->select('g.*, CONCAT(k.tipe, " ", k.nama) AS namakota')
             ->join('kab k', 'k.id = g.idkab', 'left')
+            ->orderBy('g.nama', 'ASC')
             ->get()
             ->getResult();
     }
@@ -4047,5 +4094,301 @@ class GlobalData extends Model
             'ongkir_formatted' => "Rp" . number_format($totalOngkir, 0, ',', '.')
         ];
     }
+
+    public function getProdukHabis()
+    {
+        return $this->db->table('produk')
+                        ->where('stok', 0)
+                        ->countAllResults();
+    }
+
+    public function getWhere(string $table, $where = null, ?int $limit = null, ?int $offset = null, ?string $order = null, bool $countOnly = false)
+    {
+        $builder = $this->db->table($table);
+
+        if (!empty($where)) {
+            $builder->where($where);
+        }
+
+        if ($countOnly) {
+            return $builder->countAllResults();
+        }
+
+        if (!empty($order)) {
+            $builder->orderBy($order);
+        }
+
+        if (!is_null($limit)) {
+            $builder->limit($limit, $offset ?? 0);
+        }
+
+        return $builder->get()->getResult();
+    }
+
+    public function getProdukList($where = null, ?int $limit = null, ?int $offset = null, ?string $order = 'id DESC', bool $countOnly = false)
+    {
+        $builder = $this->db->table('produk');
+
+        if (!empty($where)) {
+            $builder->where($where);
+        }
+
+        if ($countOnly) {
+            return $builder->countAllResults();
+        }
+
+        if (!empty($order)) {
+            $builder->orderBy($order);
+        }
+
+        if (!is_null($limit)) {
+            $builder->limit($limit, $offset ?? 0);
+        }
+
+        $produkList = $builder->get()->getResult();
+
+        // Cache setting lokasi pusat agar tidak query berulang kali di dalam loop
+        $settingPusat = null;
+
+        foreach ($produkList as &$p) {
+            
+            $p->jml_variasi = $this->db->table('produk_variasi')
+                           ->where('idproduk', $p->id)
+                           ->countAllResults();
+
+            // Ambil variasi pertama
+            $firstVariasi = $this->db->table('produk_variasi')
+                                    ->where('idproduk', $p->id)
+                                    ->orderBy('id', 'ASC')
+                                    ->get(1)
+                                    ->getRow();
+
+            $upload = $this->db->table('upload')
+                            ->where('idproduk', $p->id)
+                            ->where('jenis', 1)
+                            ->get(1)->getRow();
+            $p->gambar = $upload->nama ?? null;
+
+            // 2 & 3. Ambil data Gudang & Kabupaten
+            $p->gudang_nama = '-';
+            $p->kab_nama    = '-';
+            $p->kab_tipe    = '';
+
+            $idKabupaten = null;
+
+            $isGudangKhusus = (!empty($p->gudang) && (int)$p->gudang > 0);
+
+            if ($isGudangKhusus) {
+                // Gudang Cabang / Khusus
+                $gudang = $this->db->table('gudang')->where('id', $p->gudang)->get(1)->getRow();
+                if ($gudang) {
+                    $p->gudang_nama = $gudang->nama ?? '-';
+                    $idKabupaten   = $gudang->idkab ?? null;
+                }
+            } else {
+                // Gudang Pusat (ID: 0)
+                $p->gudang_nama = 'PUSAT';
+
+                if ($settingPusat === null) {
+                    $settingPusat = $this->db->table('setting')
+                                            ->where('field', 'kota')
+                                            ->get()
+                                            ->getRow();
+                }
+
+                // Ambil nilainya dari kolom 'value'
+                $idKabupaten = $settingPusat->value ?? null;
+            }
+
+            // Cari Data Kabupaten / Kota
+            if (!empty($idKabupaten)) {
+                $kab = $this->db->table('kab')->where('id', $idKabupaten)->get(1)->getRow();
+                if ($kab) {
+                    $p->kab_nama = $kab->nama ?? '-';
+                    $p->kab_tipe = $kab->tipe ?? '';
+                }
+            }
+
+            // Generate HTML String Gudang (Penyesuaian Bootstrap 5)
+            $lokasiLengkap = trim($p->kab_tipe . ' ' . $p->kab_nama);
+
+            if ($isGudangKhusus) {
+                $p->gudang_html = '<div class="text-success small mb-2"><i class="fas fa-map-marker-alt me-1"></i> ' . $p->gudang_nama . ' - ' . $lokasiLengkap . '</div>';
+            } else {
+                $p->gudang_html = '<div class="text-primary small mb-2"><i class="fas fa-map-marker-alt me-1"></i> PUSAT - ' . $lokasiLengkap . '</div>';
+            }
+        }
+
+        return $produkList;
+    }
+
+    public function getVariasiJumlah($id)
+    {
+        return $this->db->table('produk_variasi')
+                        ->where('idproduk', $id)
+                        ->countAllResults();
+    }
+
+    public function countData(
+        string $table, 
+        array $where = [], 
+        array $whereIn = [], 
+        array $whereNotIn = [], 
+        array $like = []
+    ): int {
+        $builder = $this->db->table($table);
+
+        // 1. Handling WHERE (Bisa array key-value biasa, maupun kondisi berulang/custom operator)
+        if (!empty($where)) {
+            foreach ($where as $key => $value) {
+                if (is_numeric($key) && is_array($value)) {
+                    // Untuk format: [['id !=' => 1], ['status' => 1]]
+                    $builder->where($value);
+                } else {
+                    // Untuk format standar: ['id' => 1, 'status' => 1]
+                    $builder->where($key, $value);
+                }
+            }
+        }
+
+        // 2. Handling WHERE IN
+        if (!empty($whereIn)) {
+            foreach ($whereIn as $column => $values) {
+                if (is_array($values) && !empty($values)) {
+                    $builder->whereIn($column, $values);
+                }
+            }
+        }
+
+        // 3. Handling WHERE NOT IN
+        if (!empty($whereNotIn)) {
+            foreach ($whereNotIn as $column => $values) {
+                if (is_array($values) && !empty($values)) {
+                    $builder->whereNotIn($column, $values);
+                }
+            }
+        }
+
+        // 4. Handling LIKE
+        if (!empty($like)) {
+            foreach ($like as $column => $value) {
+                if (is_array($value)) {
+                    // Format: ['nama' => ['baju', 'both']]
+                    $match = $value[1] ?? 'both';
+                    $builder->like($column, $value[0], $match);
+                } else {
+                    // Format: ['nama' => 'baju']
+                    $builder->like($column, $value);
+                }
+            }
+        }
+
+        return $builder->countAllResults();
+    }
+
+    public function getFotoUpload(?int $idproduk = null, array $fotoCopy = []): array
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('upload');
+
+        // Filter berdasarkan idproduk (termasuk nilai 0)
+        if ($idproduk !== null) {
+            $builder->where('idproduk', $idproduk);
+        }
+
+        // Filter berdasarkan array fotoCopy (WHERE IN)
+        if (!empty($fotoCopy)) {
+            $builder->whereIn('id', $fotoCopy);
+        }
+
+        // Cegah query berjalan jika idproduk null DAN fotoCopy kosong
+        if ($idproduk === null && empty($fotoCopy)) {
+            return [];
+        }
+
+        return $builder->orderBy('jenis', 'DESC')
+                    ->orderBy('id', 'ASC')
+                    ->get()
+                    ->getResult();
+    }
+
+    public function getFotoUploadExceptCopy(int $idproduk = 0, array $fotoCopy = []): array
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('upload');
+
+        if (!empty($fotoCopy)) {
+            $builder->whereNotIn('id', $fotoCopy);
+        }
+
+        return $builder->where('idproduk', $idproduk)
+                    ->get()
+                    ->getResult();
+    }
+
+    private function getDefaultEmptyValue(?string $dataType = null)
+    {
+        return match (strtolower((string) $dataType)) {
+            'text', 'varchar', 'char' => '',
+            'datetime', 'timestamp'  => '0000-00-00 00:00:00',
+            'int', 'integer',
+            'bigint', 'smallint',
+            'tinyint'                => 0,
+            default                  => 'data telah dihapus',
+        };
+    }
+
+    public function getUpload($searchValue, string $column = 'nama', string $searchField = 'id', bool $multiple = false)
+    {
+        $db      = \Config\Database::connect();
+        $builder = $db->table('upload');
+
+        // Filter berdasarkan kondisi
+        $builder->where($searchField, $searchValue);
+
+        // 1. JIKA MEMINTA BANYAK DATA (MULTIPLE = TRUE)
+        if ($multiple) {
+            $results = $builder->get()->getResult();
+
+            if ($column === 'semua') {
+                return $results; // Mengembalikan array of objects
+            }
+
+            // Ambil hanya kolom tertentu dalam bentuk array sederhana (misal: array dari nama-nama file)
+            $listData = [];
+            foreach ($results as $row) {
+                if (isset($row->$column)) {
+                    $listData[] = $row->$column;
+                }
+            }
+            return $listData;
+        }
+
+        // 2. JIKA MEMINTA SINGLE DATA (MULTIPLE = FALSE)
+        $row = $builder->get(1)->getRow();
+
+        if ($column === 'semua') {
+            if ($row !== null) {
+                return $row;
+            }
+
+            // Fallback: Objek kosong berstruktur tabel
+            $fields      = $db->getFieldData('upload');
+            $emptyObject = new \stdClass();
+
+            foreach ($fields as $field) {
+                $fieldName               = $field->name;
+                $emptyObject->$fieldName = $this->getDefaultEmptyValue($field->type);
+            }
+
+            return $emptyObject;
+        }
+
+        // Default return nilai kolom spesifik
+        $defaultValue = ($column === 'nama') ? 'no-image.png' : 0;
+
+        return ($row !== null && isset($row->$column)) ? $row->$column : $defaultValue;
+    }
+
 }
 

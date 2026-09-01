@@ -76,28 +76,57 @@ $routes->group('', ['namespace' => 'App\Controllers\Client'], static function ($
 });
 
 $routes->group('admin', ['namespace' => 'App\Controllers\Admin'], static function ($routes) {
-  $routes->get('/', 'Admin::index');
-  $routes->get('login', 'Admin::login');
-  $routes->get('logout', 'Admin::logout');
-  $routes->get('pesanan', 'Admin::pesanan');
-  $routes->get('slider', 'Admin::slider');
-  $routes->get('sliderform', 'Admin::sliderform');
-  $routes->get('sliderform/(:segment)', 'Admin::sliderform/$1');
-  $routes->post('sliderform/(:segment)', 'Admin::sliderform/$1');
-  $routes->post('sliderform', 'Admin::sliderform');
-  $routes->post('hapus_slider', 'Admin::hapusslider');
-  $routes->post('auth', 'Admin::auth');
-  $routes->post('api/pesanan', 'Api::pesanan');
-  $routes->get('api/detailpesanan', 'Api::detailpesanan');
-  $routes->get('api/cetakInvoice', 'Api::cetakInvoice');
-  $routes->get('api/cetakLabel', 'Api::cetakLabel');
-  $routes->get('api/lacakiriman', 'Api::lacakiriman');
-  $routes->get('laporantransaksi', 'Admin::laporantransaksi');
-  $routes->post('api/updatepesanan', 'Api::updatepesanan');
-  $routes->post('api/batalkanpesanan', 'Api::batalkanpesanan');
-  $routes->post('api/inputresi', 'Api::inputresi');
-  $routes->post('api/terimapesanan', 'Api::terimapesanan');
-  $routes->post('laporantransaksi', 'Admin::laporantransaksi');
+    // Auth & Dashboard
+    $routes->get('/', 'Admin::index');
+    $routes->get('login', 'Admin::login');
+    $routes->get('logout', 'Admin::logout');
+    $routes->post('auth', 'Admin::auth');
+
+    // Pesanan & Laporan
+    $routes->get('pesanan', 'Admin::pesanan');
+    $routes->get('laporantransaksi', 'Admin::laporantransaksi');
+    $routes->post('laporantransaksi', 'Admin::laporantransaksi');
+
+    // Slider
+    $routes->get('slider', 'Admin::slider');
+    $routes->get('sliderform', 'Admin::sliderform');
+    $routes->get('sliderform/(:segment)', 'Admin::sliderform/$1');
+    $routes->post('sliderform', 'Admin::sliderform');
+    $routes->post('sliderform/(:segment)', 'Admin::sliderform/$1');
+    $routes->post('hapus_slider', 'Admin::hapusslider');
+
+    // Produk
+    $routes->get('produk', 'Admin::produk');
+    $routes->post('produk', 'Admin::produk');
+    $routes->get('produkform', 'Admin::produkform');
+    $routes->get('produkform/(:segment)', 'Admin::produkform/$1');
+    $routes->post('produkform/(:segment)', 'Admin::produkform/$1');
+
+    // API - Pesanan & Cetak
+    $routes->post('api/pesanan', 'Api::pesanan');
+    $routes->get('api/detailpesanan', 'Api::detailpesanan');
+    $routes->get('api/cetakInvoice', 'Api::cetakInvoice');
+    $routes->get('api/cetakLabel', 'Api::cetakLabel');
+    $routes->get('api/lacakiriman', 'Api::lacakiriman');
+    $routes->post('api/updatepesanan', 'Api::updatepesanan');
+    $routes->post('api/batalkanpesanan', 'Api::batalkanpesanan');
+    $routes->post('api/inputresi', 'Api::inputresi');
+    $routes->post('api/terimapesanan', 'Api::terimapesanan');
+
+    // API - Foto Produk
+    $routes->post('api/uploadFotoProduk', 'Api::uploadFotoProduk');
+    $routes->post('api/uploadFotoResult/(:segment)', 'Api::uploadFotoResult/$1');
+    $routes->post('api/hapusFotoProduk/(:segment)', 'Api::hapusFotoProduk/$1');
+    $routes->post('api/jadikanFotoUtama/(:segment)', 'Api::jadikanFotoUtama/$1');
+
+    // API - Produk & Varian (PERBAIKAN DILAKUKAN DI SINI)
+    $routes->post('api/tambahproduk', 'Api::tambahproduk');
+    $routes->post('api/hapusproduk', 'Api::hapusproduk');
+    $routes->post('api/updateproduk', 'Api::updateproduk');
+    $routes->post('api/variasiform/(:segment)', 'Api::variasiform/$1'); // Fixed: (:segment)
+    $routes->post('api/variansave/(:segment)', 'Api::variansave/$1');   // Fixed: (:segment)
+    $routes->post('api/varianadd', 'Api::varianadd');
+    $routes->post('api/varianhapus', 'Api::varianhapus');
 });
 
 

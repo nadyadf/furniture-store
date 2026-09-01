@@ -400,4 +400,166 @@ class Admin extends AdminBaseController
         // 3. Render Beberapa View (Layouting CI4)
         return view('admin/laporan_transaksi', $data);
     }
+
+    public function produk()
+    {
+        // 1. Cek Sesi Login di CI4
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('admin/login');
+        }
+
+        $data = $this->data;
+        $load = $this->request->getGet('load');
+
+        if ($load === 'true') {
+            $page    = (int) ($this->request->getGet('page') ?? 1);
+            $perpage = (int) ($this->request->getGet('perpage') ?? 10);
+            $cari    = trim($this->request->getPost('cari') ?? '');
+            $status  = $this->request->getPost('status');
+
+            // Mencegah nilai nol atau negatif
+            $page    = max(1, $page);
+            $perpage = max(1, $perpage);
+
+            // Escape pencarian SQL
+            $db          = \Config\Database::connect();
+            $cariEscaped = $db->escape('%' . $cari . '%');
+
+            $where = "(nama LIKE {$cariEscaped} OR harga LIKE {$cariEscaped} OR berat LIKE {$cariEscaped} OR deskripsi LIKE {$cariEscaped})";
+
+            // Filter Status Stok
+            if (isset($status) && $status !== '') {
+                $statusVal = (int) $status;
+                if ($statusVal === 1) {
+                    $where = "stok > 0 AND " . $where;
+                } elseif ($statusVal === 2) {
+                    $where = "stok = 0 AND " . $where;
+                } elseif ($statusVal === 3) {
+                    $where = "stok > 0 AND stok <= 5 AND " . $where;
+                }
+            }
+
+            $offset = ($page - 1) * $perpage;
+
+            // Ambil data produk limit & total row dari model / helper
+            $produkByLimit = $this->func->getProdukList($where, $perpage, $offset, 'tgl_update DESC', false);
+            $totalRows     = $this->func->getProdukList($where, null, null, null, true);
+
+            $data = [
+                'offset'        => $offset,
+                'page'          => $page,
+                'perpage'       => $perpage,
+                'totalRows'     => $totalRows,
+                'produkByLimit' => $produkByLimit
+            ];
+
+            // Render view
+            $res = view('admin/produk_list', $data);
+
+            return $this->response->setJSON([
+                'result' => $res,
+                'token'  => csrf_hash()
+            ]);
+        }
+
+        $data['menu'] = 7;
+        $data['jmlProdukHabis'] = $this->func->getProdukHabis();
+
+        return view('admin/produk', $data);
+    }
+
+    public function produkform($id = 0)
+    {
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('admin/login');
+        }
+
+        $data = $this->data;
+
+        // 1. Cek Jika Request Bernilai POST (Proses Simpan / Update)
+        if ($this->request->is('post') && $this->request->getPost('nama')) {
+            $idPost = (int) $this->request->getPost('id');
+
+            $dataPost = [
+                'tgl_update' => date('Y-m-d H:i:s'),
+                'nama'       => $this->request->getPost('nama'),
+                'deskripsi'  => $this->request->getPost('deskripsi'),
+            ];
+
+            if ($idPost > 0) {
+                $this->func->updateData('produk', $dataPost, ['id' => $idPost]);
+            } else {
+                $dataPost['tgl'] = date('Y-m-d H:i:s');
+                $insertId        = $this->func->insertData('produk', $dataPost);
+            }
+
+            return redirect()->to('admin/produk');
+        }
+
+        // 2. Penyiapan Data untuk Form View (Mode Edit, Copy, atau Tambah Baru)
+        $varjum = 0;
+        $produkData = null;
+        $copy   = (int) ($this->request->getGet('copy') ?? 0);
+
+        if ($id != 0 || $copy > 0) {
+            if ($copy > 0) {
+                $id     = $copy;
+                $url    = site_url("admin/api/tambahproduk");
+                $varjum = 0;
+                session()->remove('fotoCopy');
+            } else {
+                $url    = site_url("admin/api/updateproduk");
+                $varjum = $this->func->getVariasiJumlah($id);
+            }
+
+            // Ambil data produk
+            $produkData = $this->func->getProdukById($id, "semua");
+
+            // Validasi jika data tidak ditemukan
+            if (!$produkData || (isset($produkData->id) && $produkData->id == 0)) {
+                return redirect()->to("admin/produk");
+            }
+
+            // Ambil data upload gambar
+            $upResult = $this->func->getData('upload', $id, 'idproduk', false);
+
+            $_SESSION['uploadedPhotos'] = count($upResult);
+
+            if ($copy > 0) {
+                $_SESSION['fotoCopy'] = [];
+                foreach ($upResult as $ra) {
+                    $_SESSION['fotoCopy'][] = $ra->id;
+                }
+            } else {
+                $_SESSION['fotoProduk'] = [];
+                foreach ($upResult as $ra) {
+                    $_SESSION['fotoProduk'][] = $ra->id;
+                }
+            }
+        } else {
+            $url = site_url("admin/api/tambahproduk");
+        }
+
+        // Ambil setting global dan kabupaten
+        $set  = $this->func->globalset("semua");
+        $kabs = $this->func->getKabupaten($set->kota ?? 0);
+        $kategori = $this->func->getKategori();
+        $gudang = $this->func->getDaftarGudang();
+        $produkVariasi = $this->func->getProdukVariasi($id);
+
+        // 3. Gabungkan seluruh data pendukung ke array $data View
+        $data['menu']   = 7;
+        $data['tiny']   = true;
+        $data['id']     = $id;
+        $data['produk'] = $produkData;
+        $data['url']    = $url;
+        $data['varjum'] = $varjum;
+        $data['set']    = $set;
+        $data['kabs']   = $kabs;
+        $data['kategori'] = $kategori;
+        $data['gudang'] = $gudang;
+        $data['vars'] = $produkVariasi;
+
+        return view('admin/produk_form', $data);
+    }
 }
