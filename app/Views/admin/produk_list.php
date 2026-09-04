@@ -65,6 +65,8 @@
             <a href="<?= site_url('admin/produkform/' . $p->id) ?>" title="edit" class="btn btn-primary btn-sm">
               <i class="fas fa-pencil-alt"></i>
             </a>
+            <a href="javascript:void(0)" onclick="hapus(<?= $p->id ?>)" title="hapus" class="btn btn-danger btn-sm">
+              <i class="fas fa-trash-alt"></i>
             </a>
           </td>
         </tr>
