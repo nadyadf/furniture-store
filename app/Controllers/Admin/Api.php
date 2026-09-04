@@ -1084,30 +1084,7 @@ class Api extends AdminBaseController
 
         if ($id) {
             // Pastikan ID berupa integer / aman dari manipulasi
-            $id = (int)$id;
-
-            // 3. AMBIL DATA FOTO SEBELUM DIHAPUS DARI DATABASE
-            // Menyesuaikan pemanggilan helper/model $this->func kamu
-            $uploads = $this->func->getUpload($id, 'semua', 'idproduk', true); 
-
-            if (!empty($uploads)) {
-                // Jika return berupa array dari banyak objek foto
-                if (is_array($uploads)) {
-                    foreach ($uploads as $up) {
-                        $filePath = FCPATH . 'cdn/uploads/' . $up->nama;
-                        if (!empty($up->nama) && file_exists($filePath)) {
-                            unlink($filePath);
-                        }
-                    }
-                } 
-                // Jika return hanya single object
-                else if (is_object($uploads)) {
-                    $filePath = FCPATH . 'uploads/' . $uploads->nama;
-                    if (!empty($uploads->nama) && file_exists($filePath)) {
-                        unlink($filePath);
-                    }
-                }
-            }
+            $id = (int)$id;            
 
             // 4. Hapus data dari database
             $this->func->deleteData('produk', ['id' => $id]);

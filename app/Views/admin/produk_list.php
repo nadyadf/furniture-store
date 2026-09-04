@@ -59,7 +59,7 @@
 
           <!-- Tombol Aksi -->
           <td class="text-center">
-            <a href="<?= site_url('ngadimin/produkform/?copy=' . $p->id) ?>" title="copy" class="btn btn-warning btn-sm">
+            <a href="<?= site_url('admin/produkform/?copy=' . $p->id) ?>" title="copy" class="btn btn-warning btn-sm">
               <i class="fas fa-copy"></i>
             </a>
             <a href="<?= site_url('admin/produkform/' . $p->id) ?>" title="edit" class="btn btn-primary btn-sm">

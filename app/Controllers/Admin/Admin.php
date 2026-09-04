@@ -497,9 +497,11 @@ class Admin extends AdminBaseController
         }
 
         // 2. Penyiapan Data untuk Form View (Mode Edit, Copy, atau Tambah Baru)
+        session()->remove('fotoProduk');
         $varjum = 0;
         $produkData = null;
         $copy   = (int) ($this->request->getGet('copy') ?? 0);
+        
 
         if ($id != 0 || $copy > 0) {
             if ($copy > 0) {
